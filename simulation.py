@@ -8,9 +8,46 @@ import re
 from entity import BaseStation, EdgeServer, Video
 from strategy import ProCES360, Random360
 
+TIME_SLOTS_LENGTH = 26
+
+
+def get_video_user_views(user_stats_dir):
+    # 获取所有用户统计文件
+    user_files = [f for f in os.listdir(user_stats_dir) if f.endswith('_stats.csv')]
+    user_files.sort()
+
+    if not user_files:
+        raise ValueError(f"在目录 {user_stats_dir} 中未找到 *_stats.csv 文件")
+
+    # 初始化三维列表
+    three_dim_list = []
+
+    # 读取每个用户的数据
+    for time_idx in range(TIME_SLOTS_LENGTH):
+        time_window_data = []
+
+        for user_file in user_files:
+            file_path = os.path.join(user_stats_dir, user_file)
+            user_df = pd.read_csv(file_path)
+
+            # 获取当前时间窗口的high_frequency_faces字符串
+            faces_str = user_df.loc[time_idx, 'high_frequency_faces']
+
+            # 解析字符串为列表
+            try:
+                faces_list = [int(x.strip()) for x in faces_str.strip('[]').split(',') if x.strip() != '']
+            except:
+                faces_list = []
+
+            time_window_data.append(faces_list)
+
+        three_dim_list.append(time_window_data)
+
+    return three_dim_list
+
 
 def get_video_sizes(folder_path):
-    time_slots = 29
+    time_slots = TIME_SLOTS_LENGTH
     tiles = 6
     sizes = [[0] * tiles for _ in range(time_slots)]
 
@@ -79,6 +116,12 @@ base_station_2_edge_server_line_ratio = 0.3
 base_station_2_edge_server_line_count = int(
     base_station_count * edge_server_count * base_station_2_edge_server_line_ratio)
 
+if base_station_2_edge_server_line_count < len(base_station_list):
+    raise ValueError("每个通信基站至少分配一个边缘服务器")
+for base_station in base_station_list:
+    base_station.connect_edge_server(random.choice(edge_server_list))
+base_station_2_edge_server_line_count -= len(base_station_list)
+
 while base_station_2_edge_server_line_count > 0:
     from_node = random.choice(base_station_list)
     to_node = random.choice(edge_server_list)
@@ -95,7 +138,9 @@ video_list = []
 for video_name in video_name_list:
     file_path = "D:\\codes\\Uplink_Compute\\source\\" + video_name + "\\tile\\output"
     view_path = "D:\\codes\\Uplink_Compute\\source\\" + video_name + "\\view.csv"
-    video_list.append(Video(video_name, get_video_sizes(file_path), get_video_views(view_path)))
+    user_view_path = "D:\\codes\\Uplink_Compute\\source\\" + video_name + "\\view\\stats"
+    video_list.append(
+        Video(video_name, get_video_sizes(file_path), get_video_views(view_path), get_video_user_views(user_view_path)))
 
 if len(video_list) < len(base_station_list):
     raise ValueError("yaml配置视频数不能少于设置的通信基站数")
@@ -141,6 +186,7 @@ for strategy_name in strategy_name_list:
         transmit_time = 0
         compute_time = 0
         consumed_energy = 0
+        video_quality = 0
 
         for base_station in base_station_list:
             for task in base_station.origin_task_list:
@@ -148,7 +194,9 @@ for strategy_name in strategy_name_list:
                 transmit_time += task.transmit_time
                 compute_time += task.compute_time
                 consumed_energy += task.consumed_energy
+            video_quality += base_station.collect_video_quality(time_slot)
 
         print("transmit_time: " + str(transmit_time))
         print("compute_time: " + str(compute_time))
         print("consumed_energy: " + str(consumed_energy))
+        print("video_quality: " + str(video_quality))

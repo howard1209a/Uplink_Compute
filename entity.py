@@ -106,14 +106,36 @@ class BaseStation:
 
         task.transmit_time += task.tile.data_size / self.base_station_channel_map[next_base_station].R
 
+    # 获取通信基站内所有视频在当前时隙的视野内比特率之和
+    def collect_video_quality(self, time_slot):
+        video_quality = 0
+        for video in self.video_list:
+            user_view_list_slot = video.user_view_list[time_slot]
+            average_user_bitrate = 0
+            for user_view in user_view_list_slot:
+                user_bitrate = 0
+                for tile_index in user_view:
+                    user_bitrate += self.query_tile_bitrate(tile_index, video, time_slot)
+                average_user_bitrate += user_bitrate / len(user_view)
+            average_user_bitrate /= len(user_view_list_slot)
+            video_quality += average_user_bitrate
+
+        return video_quality
+
+    def query_tile_bitrate(self, tile_index, video, time_slot):
+        for tile in video.tile_list[time_slot]:
+            if tile.index == tile_index:
+                return tile.bitrate
+        raise ValueError("查询瓦片比特率失败")
+
 
 class EdgeServer:
     def __init__(self, index):
         self.index = index
 
-        self.f = np.random.uniform(3, 10) * 1e9
-        self.u = np.random.uniform(0.5, 2.0) * 1e12
-        self.k = np.random.lognormal(mean=-61.5, sigma=0.8) * 1e-27
+        self.f = np.random.uniform(12, 40) * 1e9
+        self.u = np.random.uniform(2, 8) * 1e12
+        self.k = np.random.uniform(1, 4.0) * 1e-27
         self.p = 0
         self.IO_conflict_factor = 0.1
 
@@ -133,7 +155,7 @@ class EdgeServer:
 
 class Channel:
     def __init__(self, from_node, to_node, is_base_station_to_edge_server):
-        self.B = random.uniform(1.0, 10.0)
+        self.B = random.uniform(4.0, 40.0) * 1e6
         self.E_s_divide_N_0 = random.uniform(10.0, 30.0)
         self.h_all = 0
         if is_base_station_to_edge_server:
@@ -148,7 +170,7 @@ class Channel:
 
 
 class Video:
-    def __init__(self, name, data_size_list, view_list):
+    def __init__(self, name, data_size_list, view_list, user_view_list):
         self.name = name
         self.tile_list = []
         for data_size_slot_list in data_size_list:
@@ -157,6 +179,7 @@ class Video:
                 tile_slot_list.append(Tile(tile_index + 1, data_size_slot_list[tile_index]))
             self.tile_list.append(tile_slot_list)
         self.view_list = view_list
+        self.user_view_list = user_view_list
 
     def get_tile_list_slot(self, time_slot):
         return self.tile_list[time_slot]
@@ -165,7 +188,14 @@ class Video:
 class Tile:
     def __init__(self, index, data_size):
         self.index = index
+        # 单位bit
         self.data_size = data_size
+        # 瓦片长度固定2s，比特率单位bps
+        self.bitrate = self.data_size / 2.0
+
+    # 瓦片丢弃，放弃转码，比特率为0，会看到黑块
+    def drop(self):
+        self.bitrate = 0
 
 
 class Task:

@@ -24,7 +24,7 @@ class Random360(Strategy):
         super().__init__()
 
     def decide(self, base_station):
-        if base_station.task_queue_clean():
+        if base_station.task_clean():
             return
 
         first_task = base_station.task_queue.pop(0)
