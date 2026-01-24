@@ -65,15 +65,15 @@ class BaseStation:
         self.origin_task_list = []
         self.task_queue = []
         self.task_cache_list = []
-        self.task_queue_length = None
 
-        # 视频列表已分配完毕，任务队列长度固定
+    def init_before_simulation(self):
+        # 此时视频列表已分配完毕，任务队列长度在后续模拟过程固定
         self.task_queue_length = 6 * len(self.video_list)
 
     def task_clean(self):
         return len(self.task_queue) == 0 and len(self.task_cache_list) == 0
 
-    def interact(self):
+    def interact(self, time_slot):
         if len(self.task_cache_list) > 0:
             for cache_task in self.task_cache_list:
                 # 如果来自其他通信基站的转发任务的转发次数耗尽，或者当前任务队列已经清空，或者当前任务队列已经满了，都会将任务随机卸载到相连边缘服务器
@@ -86,7 +86,7 @@ class BaseStation:
         self.task_cache_list = []
 
         # 策略针对通信基站执行决策
-        self.strategy.decide(self)
+        self.strategy.decide(self, time_slot)
 
     def receive(self, task):
         self.task_cache_list.append(task)
@@ -128,6 +128,9 @@ class BaseStation:
                 return tile.bitrate
         raise ValueError("查询瓦片比特率失败")
 
+    def post_handle_per_slot(self, base_station, time_slot, result_per_slot):
+        self.strategy.post_handle_per_slot(base_station, time_slot, result_per_slot)
+
 
 class EdgeServer:
     def __init__(self, index):
@@ -147,9 +150,13 @@ class EdgeServer:
         self.p += 1
 
     def get_task_f(self):
+        if self.p == 0:
+            return self.f
         return self.f / self.p
 
     def get_task_u(self):
+        if self.p == 0:
+            return self.u
         return self.u / self.p
 
 
@@ -176,7 +183,7 @@ class Video:
         for data_size_slot_list in data_size_list:
             tile_slot_list = []
             for tile_index in range(len(data_size_slot_list)):
-                tile_slot_list.append(Tile(tile_index + 1, data_size_slot_list[tile_index]))
+                tile_slot_list.append(Tile(tile_index + 1, data_size_slot_list[tile_index], self))
             self.tile_list.append(tile_slot_list)
         self.view_list = view_list
         self.user_view_list = user_view_list
@@ -184,18 +191,30 @@ class Video:
     def get_tile_list_slot(self, time_slot):
         return self.tile_list[time_slot]
 
+    def check_tile_index_max_frequency(self, tile_index, time_slot):
+        return tile_index in self.view_list[time_slot]
+
+    def clear(self):
+        for tile_list_slot in self.tile_list:
+            for tile in tile_list_slot:
+                tile.clear()
+
 
 class Tile:
-    def __init__(self, index, data_size):
+    def __init__(self, index, data_size, video):
         self.index = index
         # 单位bit
         self.data_size = data_size
         # 瓦片长度固定2s，比特率单位bps
         self.bitrate = self.data_size / 2.0
+        self.video = video
 
     # 瓦片丢弃，放弃转码，比特率为0，会看到黑块
     def drop(self):
         self.bitrate = 0
+
+    def clear(self):
+        self.bitrate = self.data_size / 2.0
 
 
 class Task:
@@ -214,6 +233,8 @@ class Task:
         self.compute_time = None
         self.consumed_energy = None
 
+        self.dropped = False
+
     def can_transmit(self):
         return self.l > 0
 
@@ -221,8 +242,25 @@ class Task:
         self.offloaded_edge_server = edge_server
 
     def collect_statistics(self):
+        if self.dropped:
+            self.compute_time = 0
+            self.consumed_energy = 0
+            return
+
         e_s = self.offloaded_edge_server
         self.compute_time = self.c * (
                 1 + e_s.IO_conflict_factor) ** e_s.p / e_s.get_task_f() + self.g / e_s.get_task_u()
 
         self.consumed_energy = e_s.k * self.c * (e_s.get_task_f()) ** 2
+
+    def drop(self):
+        self.dropped = True
+        self.tile.drop()
+
+
+class ResultPerSlot:
+    def __init__(self, transmit_time, compute_time, consumed_energy, video_quality):
+        self.transmit_time = transmit_time
+        self.compute_time = compute_time
+        self.consumed_energy = consumed_energy
+        self.video_quality = video_quality

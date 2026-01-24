@@ -81,7 +81,7 @@ face_to_number = {
     'bottom': 4,  # 4号对应下面
     'front': 5,  # 5号对应前面
     'back': 6,  # 6号对应后面
-    'N/A': 0  # 无效值
+    'N/A': 0
 }
 
 
@@ -132,12 +132,12 @@ def generate_output_format(user_data, user_name):
         face1_num = face_to_number[row['top_face_1']]
         face2_num = face_to_number[row['top_face_2']]
 
-        if face2_num != 0:
+        if face1_num != 0 and face2_num != 0:
             face_list = f"[{face1_num},{face2_num}]"
         elif face1_num != 0:
             face_list = f"[{face1_num}]"
         else:
-            face_list = f"[0]"
+            face_list = f"[5]"
 
         high_frequency_faces.append({
             'index': i,
@@ -247,7 +247,7 @@ if all_face_data:
         elif face1_num != 0:
             face_list = f"[{face1_num}]"
         else:
-            face_list = f"[0]"
+            face_list = f"[5]"
 
         high_frequency_faces.append({
             'index': i,

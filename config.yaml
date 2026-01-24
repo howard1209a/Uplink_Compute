@@ -10,4 +10,5 @@ videos:
   - "video_9"
   - "video_10"
 strategies:
+  - "ProCES-360"
   - "Random360"

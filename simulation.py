@@ -1,3 +1,4 @@
+import ast
 import random
 
 import pandas as pd
@@ -5,10 +6,29 @@ import yaml
 import os
 import re
 
-from entity import BaseStation, EdgeServer, Video
+from constant import TIME_SLOTS_LENGTH, GAMMA1, GAMMA2, GAMMA3, GAMMA4
+from entity import BaseStation, EdgeServer, Video, ResultPerSlot
 from strategy import ProCES360, Random360
 
-TIME_SLOTS_LENGTH = 26
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+# TODO: 3. 训练模型，看reward曲线 4. 做好结果记录与显示 5. 实现对比算法 6. 按照实验图进行测试
+
+
+def clear_environment_per_slot(base_station_list, edge_server_list):
+    # 清空资源
+    for base_station in base_station_list:
+        base_station.clear()
+    for edge_server in edge_server_list:
+        edge_server.clear()
+
+
+def clear_environment_per_simulation(base_station_list, edge_server_list, video_list):
+    clear_environment_per_slot(base_station_list, edge_server_list)
+    for video in video_list:
+        video.clear()
 
 
 def get_video_user_views(user_stats_dir):
@@ -72,14 +92,14 @@ def get_video_views(file_path):
     df = pd.read_csv(file_path)
     view_list = []
     for i in range(len(df)):
-        view_list.append(df.loc[i, 'high_frequency_faces'])
+        view_list.append(ast.literal_eval(df.loc[i, 'high_frequency_faces']))
     return view_list
 
 
 def register_strategy(base_station_list, strategy_name):
     for base_station in base_station_list:
         if strategy_name == "ProCES-360":
-            base_station.register_strategy(ProCES360())
+            base_station.register_strategy(ProCES360(base_station))
         elif strategy_name == "Random360":
             base_station.register_strategy(Random360())
         else:
@@ -153,50 +173,83 @@ for index in range(len(video_list)):
     else:
         random.choice(base_station_list).register_video(video_list[index])
 
+for base_station in base_station_list:
+    base_station.init_before_simulation()
+
 print("---------------------------start simulation---------------------------")
 
 strategy_name_list = config.get("strategies", [])
+
 # 每个策略模拟一次
 for strategy_name in strategy_name_list:
+    # 清空资源
+    clear_environment_per_simulation(base_station_list, edge_server_list, video_list)
+
     register_strategy(base_station_list, strategy_name)
 
-    # 依次模拟每个时隙，一个时隙2s
-    for time_slot in range(1):
+    transmit_time = 0
+    compute_time = 0
+    consumed_energy = 0
+    video_quality = 0
+
+    for repeat_slot in range(20):
         # 清空资源
-        for base_station in base_station_list:
-            base_station.clear()
-        for edge_server in edge_server_list:
-            edge_server.clear()
+        clear_environment_per_simulation(base_station_list, edge_server_list, video_list)
 
-        # 对于每个通信基站，初始化本时隙的任务队列
-        for base_station in base_station_list:
-            base_station.init_task_queue(time_slot)
+        # 依次模拟每个时隙，一个时隙2s
+        for time_slot in range(TIME_SLOTS_LENGTH):
+            # 清空资源
+            clear_environment_per_slot(base_station_list, edge_server_list)
 
-        while True:
+            # 对于每个通信基站，初始化本时隙的任务队列
             for base_station in base_station_list:
-                base_station.interact()
+                base_station.init_task_queue(time_slot)
 
-            all_clean = True
+            while True:
+                for base_station in base_station_list:
+                    base_station.interact(time_slot)
+
+                all_clean = True
+                for base_station in base_station_list:
+                    all_clean = all_clean and base_station.task_clean()
+
+                if all_clean:
+                    break
+
+            result_per_slot = ResultPerSlot(0, 0, 0, 0)
+
             for base_station in base_station_list:
-                all_clean = all_clean and base_station.task_clean()
+                for task in base_station.origin_task_list:
+                    task.collect_statistics()
+                    result_per_slot.transmit_time += task.transmit_time
+                    result_per_slot.compute_time += task.compute_time
+                    result_per_slot.consumed_energy += task.consumed_energy
+                result_per_slot.video_quality += base_station.collect_video_quality(time_slot)
 
-            if all_clean:
-                break
+            transmit_time += result_per_slot.transmit_time
+            compute_time += result_per_slot.compute_time
+            consumed_energy += result_per_slot.consumed_energy
+            video_quality += result_per_slot.video_quality
 
-        transmit_time = 0
-        compute_time = 0
-        consumed_energy = 0
-        video_quality = 0
+            # 每时隙的后处理
+            for base_station in base_station_list:
+                base_station.post_handle_per_slot(base_station, time_slot, result_per_slot)
 
-        for base_station in base_station_list:
-            for task in base_station.origin_task_list:
-                task.collect_statistics()
-                transmit_time += task.transmit_time
-                compute_time += task.compute_time
-                consumed_energy += task.consumed_energy
-            video_quality += base_station.collect_video_quality(time_slot)
+    print("\n ------" + str(strategy_name) + "------\n")
+    print("transmit_time: " + str(transmit_time))
+    print("compute_time: " + str(compute_time))
+    print("consumed_energy: " + str(consumed_energy))
+    print("video_quality: " + str(video_quality))
+    print("target: " + str(
+        transmit_time * GAMMA1 + compute_time * GAMMA2 + consumed_energy * GAMMA3 + video_quality * GAMMA4))
 
-        print("transmit_time: " + str(transmit_time))
-        print("compute_time: " + str(compute_time))
-        print("consumed_energy: " + str(consumed_energy))
-        print("video_quality: " + str(video_quality))
+    if strategy_name=="ProCES-360":
+        # 基本折线图
+        plt.figure(figsize=(12, 6))
+        plt.plot(base_station_list[0].strategy.reward_list, 'b-', linewidth=2)
+        plt.xlabel('Episode', fontsize=12)
+        plt.ylabel('Reward', fontsize=12)
+        plt.title('Reward Trend in Reinforcement Learning', fontsize=14)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.show()
