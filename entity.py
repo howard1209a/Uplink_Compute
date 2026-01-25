@@ -106,19 +106,44 @@ class BaseStation:
 
         task.transmit_time += task.tile.data_size / self.base_station_channel_map[next_base_station].R
 
-    # 获取通信基站内所有视频在当前时隙的视野内比特率之和
+    # # 获取通信基站内所有视频在当前时隙的视野内比特率之和
+    # def collect_video_quality(self, time_slot):
+    #     video_quality = 0
+    #     for video in self.video_list:
+    #         user_view_list_slot = video.user_view_list[time_slot]
+    #         average_user_bitrate = 0
+    #         for user_view in user_view_list_slot:
+    #             user_bitrate = 0
+    #             for tile_index in user_view:
+    #                 user_bitrate += self.query_tile_bitrate(tile_index, video, time_slot)
+    #             average_user_bitrate += user_bitrate / len(user_view)
+    #         average_user_bitrate /= len(user_view_list_slot)
+    #         video_quality += average_user_bitrate
+    #
+    #     return video_quality
+
+    # # 获取通信基站内所有视频在当前时隙的视野内比特率之和
+    # def collect_video_quality(self, time_slot):
+    #     video_quality = 0
+    #     for video in self.video_list:
+    #         user_bitrate = 0
+    #         view_list_slot = video.view_list[time_slot]
+    #         for tile_index in view_list_slot:
+    #             b=self.query_tile_bitrate(tile_index, video, time_slot)
+    #             user_bitrate += self.query_tile_bitrate(tile_index, video, time_slot)
+    #         video_quality += user_bitrate / len(view_list_slot)
+    #
+    #     return video_quality
+
+    # 获取通信基站内所有视频在当前时隙的视野内比特率之和，随机抽取一个用户
     def collect_video_quality(self, time_slot):
         video_quality = 0
         for video in self.video_list:
-            user_view_list_slot = video.user_view_list[time_slot]
-            average_user_bitrate = 0
-            for user_view in user_view_list_slot:
-                user_bitrate = 0
-                for tile_index in user_view:
-                    user_bitrate += self.query_tile_bitrate(tile_index, video, time_slot)
-                average_user_bitrate += user_bitrate / len(user_view)
-            average_user_bitrate /= len(user_view_list_slot)
-            video_quality += average_user_bitrate
+            user_view = random.choice(video.user_view_list[time_slot])
+            user_bitrate = 0
+            for tile_index in user_view:
+                user_bitrate += self.query_tile_bitrate(tile_index, video, time_slot)
+            video_quality += user_bitrate / len(user_view)
 
         return video_quality
 
@@ -223,7 +248,7 @@ class Task:
         self.index = index
         self.c = np.random.uniform(12, 20) * 1e7
         self.g = np.random.uniform(27, 39) * 1e9
-        self.l = random.randint(1, 3)
+        self.l = random.randint(1, 6)
 
         self.offloaded_edge_server = None
 
@@ -248,6 +273,9 @@ class Task:
             return
 
         e_s = self.offloaded_edge_server
+        a=self.c * (
+                1 + e_s.IO_conflict_factor) ** e_s.p / e_s.get_task_f()
+        b=self.g / e_s.get_task_u()
         self.compute_time = self.c * (
                 1 + e_s.IO_conflict_factor) ** e_s.p / e_s.get_task_f() + self.g / e_s.get_task_u()
 

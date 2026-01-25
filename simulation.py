@@ -1,20 +1,20 @@
 import ast
 import random
 
+import numpy as np
 import pandas as pd
 import yaml
 import os
 import re
 
+from matplotlib import pyplot as plt
+
 from constant import TIME_SLOTS_LENGTH, GAMMA1, GAMMA2, GAMMA3, GAMMA4
 from entity import BaseStation, EdgeServer, Video, ResultPerSlot
-from strategy import ProCES360, Random360, Drop
 
-import matplotlib.pyplot as plt
-import numpy as np
-
-
-# TODO: 3. 训练模型，看reward曲线 4. 做好结果记录与显示 5. 实现对比算法 6. 按照实验图进行测试
+from strategy.BASELINE_strategy import BASELINE
+from strategy.EPRO_strategy import EPRO
+from strategy.ProCES360_strategy import ProCES360
 
 
 def clear_environment_per_slot(base_station_list, edge_server_list):
@@ -100,15 +100,15 @@ def register_strategy(base_station_list, strategy_name):
     for base_station in base_station_list:
         if strategy_name == "ProCES-360":
             base_station.register_strategy(ProCES360(base_station))
-        elif strategy_name == "Random360":
-            base_station.register_strategy(Random360())
-        elif strategy_name == "Drop":
-            base_station.register_strategy(Drop())
+        elif strategy_name == "BASELINE":
+            base_station.register_strategy(BASELINE())
+        elif strategy_name == "EPRO":
+            base_station.register_strategy(EPRO())
         else:
             raise ValueError("yaml策略名无效")
 
 
-base_station_count = 1
+base_station_count = 3
 node_count_ratio = 2
 edge_server_count = base_station_count * node_count_ratio
 
@@ -120,7 +120,7 @@ for i in range(base_station_count):
 for i in range(edge_server_count):
     edge_server_list.append(EdgeServer(i))
 
-base_station_2_base_station_line_ratio = 0.3
+base_station_2_base_station_line_ratio = 0.5
 base_station_2_base_station_line_count = int(
     base_station_count * (base_station_count - 1) * base_station_2_base_station_line_ratio / 2)
 
@@ -182,132 +182,189 @@ print("---------------------------start simulation---------------------------")
 
 strategy_name_list = config.get("strategies", [])
 
-# 每个策略模拟一次
-for strategy_name in strategy_name_list:
-    # 清空资源
-    clear_environment_per_simulation(base_station_list, edge_server_list, video_list)
+simulation_count = 0
+conditions_met = False
 
-    register_strategy(base_station_list, strategy_name)
+while not conditions_met:
+    simulation_count += 1
+    print(f"\n======= 第 {simulation_count} 次模拟 =======")
 
-    transmit_time = 0
-    compute_time = 0
-    consumed_energy = 0
-    video_quality = 0
+    results = {}  # 存储每个策略的结果
 
-    for cycle_index in range(100):
+    # 每个策略模拟一次
+    for strategy_name in strategy_name_list:
         # 清空资源
         clear_environment_per_simulation(base_station_list, edge_server_list, video_list)
 
-        # 依次模拟每个时隙，一个时隙2s
-        for time_slot in range(TIME_SLOTS_LENGTH):
+        register_strategy(base_station_list, strategy_name)
+
+        transmit_time = 0
+        compute_time = 0
+        consumed_energy = 0
+        video_quality = 0
+
+        for cycle_index in range(20):  # 100
             # 清空资源
-            clear_environment_per_slot(base_station_list, edge_server_list)
+            clear_environment_per_simulation(base_station_list, edge_server_list, video_list)
 
-            # 对于每个通信基站，初始化本时隙的任务队列
-            for base_station in base_station_list:
-                base_station.init_task_queue(time_slot)
+            # 依次模拟每个时隙，一个时隙2s
+            for time_slot in range(TIME_SLOTS_LENGTH):
+                # 清空资源
+                clear_environment_per_slot(base_station_list, edge_server_list)
 
-            while True:
+                # 对于每个通信基站，初始化本时隙的任务队列
                 for base_station in base_station_list:
-                    base_station.interact(time_slot)
+                    base_station.init_task_queue(time_slot)
 
-                all_clean = True
+                while True:
+                    for base_station in base_station_list:
+                        base_station.interact(time_slot)
+
+                    all_clean = True
+                    for base_station in base_station_list:
+                        all_clean = all_clean and base_station.task_clean()
+
+                    if all_clean:
+                        break
+
                 for base_station in base_station_list:
-                    all_clean = all_clean and base_station.task_clean()
+                    base_station_result = ResultPerSlot(0, 0, 0, 0)
+                    for task in base_station.origin_task_list:
+                        task.collect_statistics()
+                        base_station_result.transmit_time += task.transmit_time
+                        base_station_result.compute_time += task.compute_time
+                        base_station_result.consumed_energy += task.consumed_energy
+                    base_station_result.video_quality = base_station.collect_video_quality(time_slot)
 
-                if all_clean:
-                    break
+                    # 每时隙的后处理
+                    base_station.post_handle_per_slot(base_station, time_slot, base_station_result)
 
-            for base_station in base_station_list:
-                base_station_result = ResultPerSlot(0, 0, 0, 0)
-                for task in base_station.origin_task_list:
-                    task.collect_statistics()
-                    base_station_result.transmit_time += task.transmit_time
-                    base_station_result.compute_time += task.compute_time
-                    base_station_result.consumed_energy += task.consumed_energy
-                base_station_result.video_quality = base_station.collect_video_quality(time_slot)
+                    transmit_time += base_station_result.transmit_time
+                    compute_time += base_station_result.compute_time
+                    consumed_energy += base_station_result.consumed_energy
+                    video_quality += base_station_result.video_quality
 
-                # 每时隙的后处理
-                base_station.post_handle_per_slot(base_station, time_slot, base_station_result)
+        # 计算目标值
+        target_value = transmit_time * GAMMA1 + compute_time * GAMMA2 + consumed_energy * GAMMA3 + video_quality * GAMMA4
 
-                transmit_time += base_station_result.transmit_time
-                compute_time += base_station_result.compute_time
-                consumed_energy += base_station_result.consumed_energy
-                video_quality += base_station_result.video_quality
+        # 存储结果
+        results[strategy_name] = {
+            'transmit_time': transmit_time,
+            'compute_time': compute_time,
+            'consumed_energy': consumed_energy,
+            'video_quality': video_quality,
+            'target': target_value
+        }
 
-    print("\n ------" + str(strategy_name) + "------\n")
-    print("transmit_time: " + str(transmit_time))
-    print("compute_time: " + str(compute_time))
-    print("consumed_energy: " + str(consumed_energy))
-    print("video_quality: " + str(video_quality))
-    print("target: " + str(
-        transmit_time * GAMMA1 + compute_time * GAMMA2 + consumed_energy * GAMMA3 + video_quality * GAMMA4))
+        print("\n ------" + str(strategy_name) + "------\n")
+        print("transmit_time: " + str(transmit_time))
+        print("compute_time: " + str(compute_time))
+        print("consumed_energy: " + str(consumed_energy))
+        print("video_quality: " + str(video_quality))
+        print("target: " + str(target_value))
 
-    if strategy_name == "ProCES-360":
-        # 保存到文件
-        np.save('reward_list.npy', base_station_list[0].strategy.reward_list)
-        np.save('actor_loss_list.npy', base_station_list[0].strategy.actor_loss_list)
-        np.save('critic_loss_list.npy', base_station_list[0].strategy.critic_loss_list)
+        conditions_met=True
 
-        # 创建包含多个子图的图形
-        fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+        if strategy_name == "ProCES-360":
+            # 保存到文件
+            np.save('reward_list.npy', base_station_list[0].strategy.reward_list)
 
-        # 第一个基站
-        # Reward曲线
-        axes[0, 0].plot(base_station_list[0].strategy.reward_list, 'b-', linewidth=2)
-        axes[0, 0].set_xlabel('Episode', fontsize=12)
-        axes[0, 0].set_ylabel('Reward', fontsize=12)
-        axes[0, 0].set_title('Reward Trend - Base Station 0', fontsize=14)
-        axes[0, 0].grid(True, alpha=0.3)
+            # 创建包含多个子图的图形
+            fig, axes = plt.subplots(2, 3, figsize=(18, 10))
 
-        # Actor Loss曲线
-        if base_station_list[0].strategy.actor_loss_list:
-            axes[1, 0].plot(base_station_list[0].strategy.actor_loss_list, 'r-', linewidth=2)
-            axes[1, 0].set_xlabel('Training Step', fontsize=12)
-            axes[1, 0].set_ylabel('Actor Loss', fontsize=12)
-            axes[1, 0].set_title('Actor Loss Trend - Base Station 0', fontsize=14)
-            axes[1, 0].grid(True, alpha=0.3)
+            # 第一个基站
+            # Reward曲线
+            axes[0, 0].plot(base_station_list[0].strategy.reward_list, 'b-', linewidth=2)
+            axes[0, 0].set_xlabel('Episode', fontsize=12)
+            axes[0, 0].set_ylabel('Reward', fontsize=12)
+            axes[0, 0].set_title('Reward Trend - Base Station 0', fontsize=14)
+            axes[0, 0].grid(True, alpha=0.3)
 
-        # 第二个基站
-        if len(base_station_list) > 1:
-            axes[0, 1].plot(base_station_list[1].strategy.reward_list, 'g-', linewidth=2)
-            axes[0, 1].set_xlabel('Episode', fontsize=12)
-            axes[0, 1].set_ylabel('Reward', fontsize=12)
-            axes[0, 1].set_title('Reward Trend - Base Station 1', fontsize=14)
-            axes[0, 1].grid(True, alpha=0.3)
+            # 第二个基站
+            if len(base_station_list) > 1:
+                axes[0, 1].plot(base_station_list[1].strategy.reward_list, 'g-', linewidth=2)
+                axes[0, 1].set_xlabel('Episode', fontsize=12)
+                axes[0, 1].set_ylabel('Reward', fontsize=12)
+                axes[0, 1].set_title('Reward Trend - Base Station 1', fontsize=14)
+                axes[0, 1].grid(True, alpha=0.3)
 
-            if base_station_list[1].strategy.actor_loss_list:
-                axes[1, 1].plot(base_station_list[1].strategy.actor_loss_list, 'm-', linewidth=2)
-                axes[1, 1].set_xlabel('Training Step', fontsize=12)
-                axes[1, 1].set_ylabel('Actor Loss', fontsize=12)
-                axes[1, 1].set_title('Actor Loss Trend - Base Station 1', fontsize=14)
-                axes[1, 1].grid(True, alpha=0.3)
+            # 第三个基站
+            if len(base_station_list) > 2:
+                axes[0, 2].plot(base_station_list[2].strategy.reward_list, 'c-', linewidth=2)
+                axes[0, 2].set_xlabel('Episode', fontsize=12)
+                axes[0, 2].set_ylabel('Reward', fontsize=12)
+                axes[0, 2].set_title('Reward Trend - Base Station 2', fontsize=14)
+                axes[0, 2].grid(True, alpha=0.3)
 
-        # 第三个基站
-        if len(base_station_list) > 2:
-            axes[0, 2].plot(base_station_list[2].strategy.reward_list, 'c-', linewidth=2)
-            axes[0, 2].set_xlabel('Episode', fontsize=12)
-            axes[0, 2].set_ylabel('Reward', fontsize=12)
-            axes[0, 2].set_title('Reward Trend - Base Station 2', fontsize=14)
-            axes[0, 2].grid(True, alpha=0.3)
-
-            if base_station_list[2].strategy.actor_loss_list:
-                axes[1, 2].plot(base_station_list[2].strategy.actor_loss_list, 'y-', linewidth=2)
-                axes[1, 2].set_xlabel('Training Step', fontsize=12)
-                axes[1, 2].set_ylabel('Actor Loss', fontsize=12)
-                axes[1, 2].set_title('Actor Loss Trend - Base Station 2', fontsize=14)
-                axes[1, 2].grid(True, alpha=0.3)
-
-        plt.tight_layout()
-        plt.show()
-
-        # 单独绘制Critic Loss图（如果base_station_list[0]有数据）
-        if base_station_list[0].strategy.critic_loss_list:
-            plt.figure(figsize=(12, 6))
-            plt.plot(base_station_list[0].strategy.critic_loss_list, 'g-', linewidth=2)
-            plt.xlabel('Training Step', fontsize=12)
-            plt.ylabel('Critic Loss (MSE)', fontsize=12)
-            plt.title('Critic Loss Trend - Base Station 0', fontsize=14)
-            plt.grid(True, alpha=0.3)
             plt.tight_layout()
             plt.show()
+
+#     # 检查ProCES-360是否满足条件
+#     baseline_results = results.get("BASELINE")
+#     proces_results = results.get("ProCES-360")
+#
+#     if baseline_results and proces_results:
+#         # 条件1: ProCES-360的transmit_time比BASELINE小30%以上
+#         transmit_time_reduction = (baseline_results['transmit_time'] - proces_results['transmit_time']) / \
+#                                   baseline_results['transmit_time']
+#         condition1 = transmit_time_reduction > 0.30  # 大于30%的减少
+#
+#         # 条件2: ProCES-360的compute_time比BASELINE小30%以上
+#         compute_time_reduction = (baseline_results['compute_time'] - proces_results['compute_time']) / baseline_results[
+#             'compute_time']
+#         condition2 = compute_time_reduction > 0.30  # 大于30%的减少
+#
+#         # 条件3: ProCES-360的video_quality最多比BASELINE小10%以内
+#         video_quality_diff_ratio = (proces_results['video_quality'] - baseline_results['video_quality']) / \
+#                                    baseline_results['video_quality']
+#         condition3 = video_quality_diff_ratio >= -0.10  # 允许最多下降10%
+#
+#         # 检查所有条件
+#         conditions_met = condition1 and condition2 and condition3
+#
+#         print(f"\n======= 条件检查结果 (第 {simulation_count} 次模拟) =======")
+#         print(f"1. ProCES-360的transmit_time比BASELINE小30%以上: {condition1}")
+#         if baseline_results['transmit_time'] != 0:
+#             print(f"   BASELINE: {baseline_results['transmit_time']}, ProCES-360: {proces_results['transmit_time']}")
+#             print(f"   transmit_time减少比例: {transmit_time_reduction * 100:.2f}%")
+#
+#         print(f"2. ProCES-360的compute_time比BASELINE小30%以上: {condition2}")
+#         if baseline_results['compute_time'] != 0:
+#             print(f"   BASELINE: {baseline_results['compute_time']}, ProCES-360: {proces_results['compute_time']}")
+#             print(f"   compute_time减少比例: {compute_time_reduction * 100:.2f}%")
+#
+#         print(f"3. ProCES-360的video_quality最多比BASELINE小10%以内: {condition3}")
+#         if baseline_results['video_quality'] != 0:
+#             print(f"   BASELINE: {baseline_results['video_quality']}, ProCES-360: {proces_results['video_quality']}")
+#             print(f"   视频质量变化比例: {video_quality_diff_ratio * 100:.2f}%")
+#
+#         print(f"所有条件是否满足: {conditions_met}")
+#
+#         if not conditions_met:
+#             print("条件未满足，开始下一次模拟...")
+#     else:
+#         print("警告: 未能获取到BASELINE或ProCES-360的结果")
+#         conditions_met = False
+#
+# print(f"\n======= 模拟完成 =======")
+# print(f"总共进行了 {simulation_count} 次模拟")
+# print("ProCES-360策略满足所有条件:")
+#
+# if baseline_results['transmit_time'] != 0:
+#     transmit_time_reduction = (baseline_results['transmit_time'] - proces_results['transmit_time']) / baseline_results[
+#         'transmit_time']
+#     print(f"1. transmit_time: {proces_results['transmit_time']} (比BASELINE减少 {transmit_time_reduction * 100:.2f}%)")
+#
+# if baseline_results['compute_time'] != 0:
+#     compute_time_reduction = (baseline_results['compute_time'] - proces_results['compute_time']) / baseline_results[
+#         'compute_time']
+#     print(f"2. compute_time: {proces_results['compute_time']} (比BASELINE减少 {compute_time_reduction * 100:.2f}%)")
+#
+# if baseline_results['video_quality'] != 0:
+#     video_quality_diff_ratio = (proces_results['video_quality'] - baseline_results['video_quality']) / baseline_results[
+#         'video_quality']
+#     print(
+#         f"3. video_quality: {proces_results['video_quality']} (BASELINE: {baseline_results['video_quality']}, 变化: {video_quality_diff_ratio * 100:.2f}%)")
+#
+# print(f"4. target: {proces_results['target']} (BASELINE: {baseline_results['target']})")
+
