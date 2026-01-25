@@ -256,12 +256,13 @@ class ProCES360(Strategy):
         self.max_tasks = None  # 将在运行时确定
         self.action_dim = None  # 将在运行时确定
         self.hidden_dim = 512
-        self.lr = 0.0001  # 0.0003
+        self.actor_lr = 0.0001
+        self.critic_lr = 0.00000001
         self.gamma = 0.99
-        self.epsilon = 0.2
+        self.epsilon = 0.5
         self.epochs = 5
-        self.batch_size = 10
-        self.search_rate = 0.15
+        self.batch_size = 200
+        self.search_rate = 0.3
 
         # 经验回放池
         self.memory = deque(maxlen=10000)
@@ -323,14 +324,18 @@ class ProCES360(Strategy):
         self.critic_target.load_state_dict(self.critic.state_dict())
 
         # 优化器
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.lr)
-        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.lr)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.actor_lr)
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.critic_lr)
 
         self.pre_state = None
         self.pre_action_idx = None
         self.pre_old_prob = None  # 新增：保存旧策略概率
 
+        # 添加loss记录列表
+        self.actor_loss_list = []
+        self.critic_loss_list = []
         self.reward_list = []
+
 
     def extract_state(self, base_station, time_slot):
         """从基站提取状态特征"""
@@ -440,6 +445,9 @@ class ProCES360(Strategy):
             next_values = self.critic_target(next_states)
             target_values = rewards + self.gamma * next_values * (1 - dones)
 
+        actor_losses = []
+        critic_losses = []
+
         # 首先计算Critic的loss并更新
         for _ in range(self.epochs):
             # 重新计算当前critic的values
@@ -447,6 +455,8 @@ class ProCES360(Strategy):
 
             # 更新Critic
             critic_loss = nn.MSELoss()(values, target_values)
+
+            critic_losses.append(critic_loss.item())  # 记录loss
 
             self.critic_optimizer.zero_grad()
             critic_loss.backward()
@@ -468,10 +478,18 @@ class ProCES360(Strategy):
 
             actor_loss = -torch.min(surr1, surr2).mean()
 
+            actor_losses.append(actor_loss.item())  # 记录loss
+
             self.actor_optimizer.zero_grad()
             actor_loss.backward()
             torch.nn.utils.clip_grad_norm_(self.actor.parameters(), 0.5)
             self.actor_optimizer.step()
+
+        # 记录平均loss（每个epoch的loss平均）
+        if actor_losses:
+            self.actor_loss_list.append(np.mean(actor_losses))
+        if critic_losses:
+            self.critic_loss_list.append(np.mean(critic_losses))
 
         # 更新目标网络
         self.learn_step_counter += 1

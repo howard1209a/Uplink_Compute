@@ -246,57 +246,68 @@ for strategy_name in strategy_name_list:
     if strategy_name == "ProCES-360":
         # 保存到文件
         np.save('reward_list.npy', base_station_list[0].strategy.reward_list)
+        np.save('actor_loss_list.npy', base_station_list[0].strategy.actor_loss_list)
+        np.save('critic_loss_list.npy', base_station_list[0].strategy.critic_loss_list)
 
-        # 基本折线图
-        plt.figure(figsize=(12, 6))
-        plt.plot(base_station_list[0].strategy.reward_list, 'b-', linewidth=2)
-        plt.xlabel('Episode', fontsize=12)
-        plt.ylabel('Reward', fontsize=12)
-        plt.title('Reward Trend in Reinforcement Learning0', fontsize=14)
-        plt.grid(True, alpha=0.3)
+        # 创建包含多个子图的图形
+        fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+
+        # 第一个基站
+        # Reward曲线
+        axes[0, 0].plot(base_station_list[0].strategy.reward_list, 'b-', linewidth=2)
+        axes[0, 0].set_xlabel('Episode', fontsize=12)
+        axes[0, 0].set_ylabel('Reward', fontsize=12)
+        axes[0, 0].set_title('Reward Trend - Base Station 0', fontsize=14)
+        axes[0, 0].grid(True, alpha=0.3)
+
+        # Actor Loss曲线
+        if base_station_list[0].strategy.actor_loss_list:
+            axes[1, 0].plot(base_station_list[0].strategy.actor_loss_list, 'r-', linewidth=2)
+            axes[1, 0].set_xlabel('Training Step', fontsize=12)
+            axes[1, 0].set_ylabel('Actor Loss', fontsize=12)
+            axes[1, 0].set_title('Actor Loss Trend - Base Station 0', fontsize=14)
+            axes[1, 0].grid(True, alpha=0.3)
+
+        # 第二个基站
+        if len(base_station_list) > 1:
+            axes[0, 1].plot(base_station_list[1].strategy.reward_list, 'g-', linewidth=2)
+            axes[0, 1].set_xlabel('Episode', fontsize=12)
+            axes[0, 1].set_ylabel('Reward', fontsize=12)
+            axes[0, 1].set_title('Reward Trend - Base Station 1', fontsize=14)
+            axes[0, 1].grid(True, alpha=0.3)
+
+            if base_station_list[1].strategy.actor_loss_list:
+                axes[1, 1].plot(base_station_list[1].strategy.actor_loss_list, 'm-', linewidth=2)
+                axes[1, 1].set_xlabel('Training Step', fontsize=12)
+                axes[1, 1].set_ylabel('Actor Loss', fontsize=12)
+                axes[1, 1].set_title('Actor Loss Trend - Base Station 1', fontsize=14)
+                axes[1, 1].grid(True, alpha=0.3)
+
+        # 第三个基站
+        if len(base_station_list) > 2:
+            axes[0, 2].plot(base_station_list[2].strategy.reward_list, 'c-', linewidth=2)
+            axes[0, 2].set_xlabel('Episode', fontsize=12)
+            axes[0, 2].set_ylabel('Reward', fontsize=12)
+            axes[0, 2].set_title('Reward Trend - Base Station 2', fontsize=14)
+            axes[0, 2].grid(True, alpha=0.3)
+
+            if base_station_list[2].strategy.actor_loss_list:
+                axes[1, 2].plot(base_station_list[2].strategy.actor_loss_list, 'y-', linewidth=2)
+                axes[1, 2].set_xlabel('Training Step', fontsize=12)
+                axes[1, 2].set_ylabel('Actor Loss', fontsize=12)
+                axes[1, 2].set_title('Actor Loss Trend - Base Station 2', fontsize=14)
+                axes[1, 2].grid(True, alpha=0.3)
+
         plt.tight_layout()
         plt.show()
 
-    if strategy_name == "ProCES-360":
-        # 基本折线图
-        plt.figure(figsize=(12, 6))
-        plt.plot(base_station_list[1].strategy.reward_list, 'b-', linewidth=2)
-        plt.xlabel('Episode', fontsize=12)
-        plt.ylabel('Reward', fontsize=12)
-        plt.title('Reward Trend in Reinforcement Learning1', fontsize=14)
-        plt.grid(True, alpha=0.3)
-        plt.tight_layout()
-        plt.show()
-
-    if strategy_name == "ProCES-360":
-        # 基本折线图
-        plt.figure(figsize=(12, 6))
-        plt.plot(base_station_list[2].strategy.reward_list, 'b-', linewidth=2)
-        plt.xlabel('Episode', fontsize=12)
-        plt.ylabel('Reward', fontsize=12)
-        plt.title('Reward Trend in Reinforcement Learning2', fontsize=14)
-        plt.grid(True, alpha=0.3)
-        plt.tight_layout()
-        plt.show()
-
-    if strategy_name == "ProCES-360":
-        # 基本折线图
-        plt.figure(figsize=(12, 6))
-        plt.plot(base_station_list[3].strategy.reward_list, 'b-', linewidth=2)
-        plt.xlabel('Episode', fontsize=12)
-        plt.ylabel('Reward', fontsize=12)
-        plt.title('Reward Trend in Reinforcement Learning3', fontsize=14)
-        plt.grid(True, alpha=0.3)
-        plt.tight_layout()
-        plt.show()
-
-    if strategy_name == "ProCES-360":
-        # 基本折线图
-        plt.figure(figsize=(12, 6))
-        plt.plot(base_station_list[4].strategy.reward_list, 'b-', linewidth=2)
-        plt.xlabel('Episode', fontsize=12)
-        plt.ylabel('Reward', fontsize=12)
-        plt.title('Reward Trend in Reinforcement Learning4', fontsize=14)
-        plt.grid(True, alpha=0.3)
-        plt.tight_layout()
-        plt.show()
+        # 单独绘制Critic Loss图（如果base_station_list[0]有数据）
+        if base_station_list[0].strategy.critic_loss_list:
+            plt.figure(figsize=(12, 6))
+            plt.plot(base_station_list[0].strategy.critic_loss_list, 'g-', linewidth=2)
+            plt.xlabel('Training Step', fontsize=12)
+            plt.ylabel('Critic Loss (MSE)', fontsize=12)
+            plt.title('Critic Loss Trend - Base Station 0', fontsize=14)
+            plt.grid(True, alpha=0.3)
+            plt.tight_layout()
+            plt.show()

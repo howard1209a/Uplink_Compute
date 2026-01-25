@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # 读取并转换
-reward_data = np.load('reward_list.npy')
+reward_data = np.load('./actor_loss_list.npy')
 rewards = reward_data.flatten() if reward_data.ndim > 1 else reward_data
 
 # 定义一个变量，限制只显示前多少个值
@@ -16,7 +16,7 @@ else:
 print(f"数据统计: 长度={len(rewards)}, 平均值={np.mean(rewards):.4f}, 最大值={np.max(rewards):.4f}, 最小值={np.min(rewards):.4f}")
 
 # 简单移动平均
-window = 20
+window = 1
 weights = np.ones(window) / window
 smoothed = np.convolve(rewards, weights, mode='same')  # 改为 'same' 模式，保持相同长度
 
