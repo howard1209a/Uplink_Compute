@@ -34,7 +34,7 @@ def load_npy_file(file_path):
 
 
 def plot_loss_curve(file_path, title="训练损失曲线",
-                    xlabel="训练步数", ylabel="损失值",
+                    xlabel="训练步数", ylabel="",
                     window_size=50, line_width=2, color='#D72638',
                     figsize=(10, 6), save_path=None, dpi=300):
     """
@@ -67,7 +67,7 @@ def plot_loss_curve(file_path, title="训练损失曲线",
             linewidth=line_width,
             color=color,
             alpha=0.9,
-            label='损失值')
+            label='')
 
     # 设置坐标轴
     ax.set_xlabel(xlabel, fontsize=12)
@@ -111,10 +111,10 @@ if __name__ == "__main__":
         file_path=actor_loss_file,
         title="",
         xlabel="训练轮次",
-        ylabel="Loss",
-        window_size=2,
+        ylabel="Actor网络损失函数",
+        window_size=10,
         line_width=2.5,
-        color='#2E86AB',
+        color=plt.cm.tab10(np.linspace(0, 1, 3))[0],
         figsize=(10, 6),
         save_path='actor_loss.png',
         dpi=300
@@ -122,20 +122,20 @@ if __name__ == "__main__":
 
     plt.show()
 
-    # critic_loss_file = "./critic_loss.npy"
-    #
-    # # 绘制损失曲线
-    # fig, ax, data = plot_loss_curve(
-    #     file_path=critic_loss_file,
-    #     title="",
-    #     xlabel="训练轮次",
-    #     ylabel="Loss",
-    #     window_size=2,
-    #     line_width=2.5,
-    #     color='#2E86AB',
-    #     figsize=(10, 6),
-    #     save_path='critic_loss.png',  # 可选
-    #     dpi=300
-    # )
-    #
-    # plt.show()
+    critic_loss_file = "./critic_loss.npy"
+
+    # 绘制损失曲线
+    fig, ax, data = plot_loss_curve(
+        file_path=critic_loss_file,
+        title="",
+        xlabel="训练轮次",
+        ylabel="Critic网络损失函数",
+        window_size=10,
+        line_width=2.5,
+        color=plt.cm.tab10(np.linspace(0, 1, 3))[1],
+        figsize=(10, 6),
+        save_path='critic_loss.png',  # 可选
+        dpi=300
+    )
+
+    plt.show()
