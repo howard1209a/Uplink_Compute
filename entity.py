@@ -136,8 +136,8 @@ class EdgeServer:
     def __init__(self, index):
         self.index = index
 
-        self.f = np.random.uniform(12, 40) * 1e9
-        self.u = np.random.uniform(2, 8) * 1e12
+        self.f = np.random.uniform(20, 32) * 1e9
+        self.u = np.random.uniform(4, 6) * 1e12
         self.k = np.random.uniform(1, 4.0) * 1e-27
         self.p = 0
         self.IO_conflict_factor = 0.1
@@ -162,8 +162,8 @@ class EdgeServer:
 
 class Channel:
     def __init__(self, from_node, to_node, is_base_station_to_edge_server):
-        self.B = random.uniform(4.0, 40.0) * 1e6
-        self.E_s_divide_N_0 = random.uniform(10.0, 30.0)
+        self.B = random.uniform(14.0, 30.0) * 1e6
+        self.E_s_divide_N_0 = random.uniform(16.0, 24.0)
         self.h_all = 0
         if is_base_station_to_edge_server:
             for _ in range(from_node.antenna_count):
@@ -221,8 +221,8 @@ class Task:
     def __init__(self, base_station, index, tile):
         self.base_station = base_station
         self.index = index
-        self.c = np.random.uniform(3, 30) * 1e7
-        self.g = np.random.uniform(6, 60) * 1e9
+        self.c = np.random.uniform(12, 20) * 1e7
+        self.g = np.random.uniform(27, 39) * 1e9
         self.l = random.randint(1, 3)
 
         self.offloaded_edge_server = None

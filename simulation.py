@@ -8,7 +8,7 @@ import re
 
 from constant import TIME_SLOTS_LENGTH, GAMMA1, GAMMA2, GAMMA3, GAMMA4
 from entity import BaseStation, EdgeServer, Video, ResultPerSlot
-from strategy import ProCES360, Random360
+from strategy import ProCES360, Random360, Drop
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -102,11 +102,13 @@ def register_strategy(base_station_list, strategy_name):
             base_station.register_strategy(ProCES360(base_station))
         elif strategy_name == "Random360":
             base_station.register_strategy(Random360())
+        elif strategy_name == "Drop":
+            base_station.register_strategy(Drop())
         else:
             raise ValueError("yaml策略名无效")
 
 
-base_station_count = 5
+base_station_count = 1
 node_count_ratio = 2
 edge_server_count = base_station_count * node_count_ratio
 
@@ -132,7 +134,7 @@ while base_station_2_base_station_line_count > 0:
     from_node.connnet_base_station(to_node)
     base_station_2_base_station_line_count -= 1
 
-base_station_2_edge_server_line_ratio = 0.3
+base_station_2_edge_server_line_ratio = 0.5
 base_station_2_edge_server_line_count = int(
     base_station_count * edge_server_count * base_station_2_edge_server_line_ratio)
 
@@ -192,7 +194,7 @@ for strategy_name in strategy_name_list:
     consumed_energy = 0
     video_quality = 0
 
-    for repeat_slot in range(20):
+    for cycle_index in range(100):
         # 清空资源
         clear_environment_per_simulation(base_station_list, edge_server_list, video_list)
 
@@ -216,24 +218,22 @@ for strategy_name in strategy_name_list:
                 if all_clean:
                     break
 
-            result_per_slot = ResultPerSlot(0, 0, 0, 0)
-
             for base_station in base_station_list:
+                base_station_result = ResultPerSlot(0, 0, 0, 0)
                 for task in base_station.origin_task_list:
                     task.collect_statistics()
-                    result_per_slot.transmit_time += task.transmit_time
-                    result_per_slot.compute_time += task.compute_time
-                    result_per_slot.consumed_energy += task.consumed_energy
-                result_per_slot.video_quality += base_station.collect_video_quality(time_slot)
+                    base_station_result.transmit_time += task.transmit_time
+                    base_station_result.compute_time += task.compute_time
+                    base_station_result.consumed_energy += task.consumed_energy
+                base_station_result.video_quality = base_station.collect_video_quality(time_slot)
 
-            transmit_time += result_per_slot.transmit_time
-            compute_time += result_per_slot.compute_time
-            consumed_energy += result_per_slot.consumed_energy
-            video_quality += result_per_slot.video_quality
+                # 每时隙的后处理
+                base_station.post_handle_per_slot(base_station, time_slot, base_station_result)
 
-            # 每时隙的后处理
-            for base_station in base_station_list:
-                base_station.post_handle_per_slot(base_station, time_slot, result_per_slot)
+                transmit_time += base_station_result.transmit_time
+                compute_time += base_station_result.compute_time
+                consumed_energy += base_station_result.consumed_energy
+                video_quality += base_station_result.video_quality
 
     print("\n ------" + str(strategy_name) + "------\n")
     print("transmit_time: " + str(transmit_time))
@@ -243,13 +243,60 @@ for strategy_name in strategy_name_list:
     print("target: " + str(
         transmit_time * GAMMA1 + compute_time * GAMMA2 + consumed_energy * GAMMA3 + video_quality * GAMMA4))
 
-    if strategy_name=="ProCES-360":
+    if strategy_name == "ProCES-360":
+        # 保存到文件
+        np.save('reward_list.npy', base_station_list[0].strategy.reward_list)
+
         # 基本折线图
         plt.figure(figsize=(12, 6))
         plt.plot(base_station_list[0].strategy.reward_list, 'b-', linewidth=2)
         plt.xlabel('Episode', fontsize=12)
         plt.ylabel('Reward', fontsize=12)
-        plt.title('Reward Trend in Reinforcement Learning', fontsize=14)
+        plt.title('Reward Trend in Reinforcement Learning0', fontsize=14)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.show()
+
+    if strategy_name == "ProCES-360":
+        # 基本折线图
+        plt.figure(figsize=(12, 6))
+        plt.plot(base_station_list[1].strategy.reward_list, 'b-', linewidth=2)
+        plt.xlabel('Episode', fontsize=12)
+        plt.ylabel('Reward', fontsize=12)
+        plt.title('Reward Trend in Reinforcement Learning1', fontsize=14)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.show()
+
+    if strategy_name == "ProCES-360":
+        # 基本折线图
+        plt.figure(figsize=(12, 6))
+        plt.plot(base_station_list[2].strategy.reward_list, 'b-', linewidth=2)
+        plt.xlabel('Episode', fontsize=12)
+        plt.ylabel('Reward', fontsize=12)
+        plt.title('Reward Trend in Reinforcement Learning2', fontsize=14)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.show()
+
+    if strategy_name == "ProCES-360":
+        # 基本折线图
+        plt.figure(figsize=(12, 6))
+        plt.plot(base_station_list[3].strategy.reward_list, 'b-', linewidth=2)
+        plt.xlabel('Episode', fontsize=12)
+        plt.ylabel('Reward', fontsize=12)
+        plt.title('Reward Trend in Reinforcement Learning3', fontsize=14)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.show()
+
+    if strategy_name == "ProCES-360":
+        # 基本折线图
+        plt.figure(figsize=(12, 6))
+        plt.plot(base_station_list[4].strategy.reward_list, 'b-', linewidth=2)
+        plt.xlabel('Episode', fontsize=12)
+        plt.ylabel('Reward', fontsize=12)
+        plt.title('Reward Trend in Reinforcement Learning4', fontsize=14)
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.show()

@@ -30,6 +30,21 @@ class Random360(Strategy):
         pass
 
 
+class Drop(Strategy):
+    def __init__(self):
+        super().__init__()
+
+    def decide(self, base_station, time_slot):
+        if len(base_station.task_queue) == 0:
+            return
+
+        first_task = base_station.task_queue.pop(0)
+        first_task.drop()
+
+    def post_handle_per_slot(self, base_station, time_slot, result_per_slot):
+        pass
+
+
 import random
 import numpy as np
 import torch
@@ -240,13 +255,13 @@ class ProCES360(Strategy):
         self.edge_server_count = None  # 将在运行时确定
         self.max_tasks = None  # 将在运行时确定
         self.action_dim = None  # 将在运行时确定
-        self.hidden_dim = 256
-        self.lr = 0.0005  # 0.0003
+        self.hidden_dim = 512
+        self.lr = 0.0001  # 0.0003
         self.gamma = 0.99
         self.epsilon = 0.2
         self.epochs = 5
-        self.batch_size = 30
-        self.search_rate = 0.4
+        self.batch_size = 10
+        self.search_rate = 0.15
 
         # 经验回放池
         self.memory = deque(maxlen=10000)
@@ -474,10 +489,10 @@ class ProCES360(Strategy):
         # 选择动作和获取旧策略概率
         action_idx, old_prob = self.choose_action(state)  # 修改：获取旧策略概率
 
-        # 非本时隙的第一次决策，开始存储五元组
-        if self.pre_state is not None and self.pre_action_idx is not None:
-            # 存储旧策略概率
-            self.store_transition(self.pre_state, self.pre_action_idx, self.pre_old_prob, 0, state, False)
+        # # 非本时隙的第一次决策，开始存储五元组
+        # if self.pre_state is not None and self.pre_action_idx is not None:
+        #     # 存储旧策略概率
+        #     self.store_transition(self.pre_state, self.pre_action_idx, self.pre_old_prob, 0, state, False)
 
         self.pre_state = state
         self.pre_action_idx = action_idx
@@ -508,9 +523,35 @@ class ProCES360(Strategy):
         if self.pre_state is None or self.pre_action_idx is None or self.pre_old_prob is None:
             raise ValueError("前时隙状态或动作或旧概率未存储！")
 
-        reward = 1.0 / (result_per_slot.transmit_time * GAMMA1) + 1.0 / (
-                result_per_slot.compute_time * GAMMA2) + 1.0 / (
-                         result_per_slot.consumed_energy * GAMMA3) - result_per_slot.video_quality * GAMMA4
+        # a = 1.0 / (result_per_slot.transmit_time * GAMMA1)
+        # b = 1.0 / (
+        #         result_per_slot.compute_time * GAMMA2)
+        # c = 1.0 / (
+        #         result_per_slot.consumed_energy * GAMMA3)
+        # d = - result_per_slot.video_quality * GAMMA4 * 1000
+        #
+        # reward = 1.0 / (result_per_slot.transmit_time * GAMMA1) + 1.0 / (
+        #         result_per_slot.compute_time * GAMMA2) + 1.0 / (
+        #                  result_per_slot.consumed_energy * GAMMA3) - result_per_slot.video_quality * GAMMA4 * 1000
+
+        # reward = 1.0 / (result_per_slot.transmit_time * GAMMA1 + 1e-9)  # 越小越好
+        # reward += 1.0 / (result_per_slot.compute_time * GAMMA2 + 1e-9)
+        # reward += 1.0 / (result_per_slot.consumed_energy * GAMMA3 + 1e-9)
+
+        # reward = result_per_slot.transmit_time * GAMMA1 + result_per_slot.compute_time * GAMMA2 + result_per_slot.consumed_energy * GAMMA3
+        # reward *= -1000
+        # # reward += 140
+        #
+        # if reward < -200:
+        #     reward = -200
+
+        transmit_reward = -np.log(result_per_slot.transmit_time * GAMMA1 + 1e-5)
+        compute_reward = -np.log(result_per_slot.compute_time * GAMMA2 + 1e-5)
+        energy_reward = -np.log(result_per_slot.consumed_energy * GAMMA3 + 1e-5)
+        video_quality = result_per_slot.video_quality * GAMMA4 * -3
+
+        reward = transmit_reward + compute_reward + energy_reward + video_quality
+
         # 存储最后一个transition，包含旧策略概率
         self.store_transition(self.pre_state, self.pre_action_idx, self.pre_old_prob, reward, state, True)
 
