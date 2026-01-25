@@ -204,7 +204,7 @@ if __name__ == "__main__":
         window_size=30,
         line_width=2.5,
         figure_ratio=1.5,
-        save_path='param_comparison_grid.png',
+        save_path='result.png',
         dpi=300,
         y_limits=custom_y_limits  # 可选，不提供则自动计算
     )
