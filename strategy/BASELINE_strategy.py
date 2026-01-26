@@ -21,7 +21,7 @@ class BASELINE(Strategy):
                 base_station.transmit(first_task, random.choice(base_station.base_stations))
             else:
                 self.best_offload(base_station, first_task)
-        elif choice < 0.55:
+        elif choice < 0.5:
             first_task.drop()
         else:
             self.best_offload(base_station, first_task)

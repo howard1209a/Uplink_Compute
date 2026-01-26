@@ -10,9 +10,9 @@ videos:
 #  - "video_9"
 #  - "video_10"
 strategies:
-#  - "ProCES-360"
+  - "ProCES-360"
   - "BASELINE"
-#  - "EPRO"
-#  - "MFQAS"
-#  - "AC-KKT"
+  - "EPRO"
+  - "MFQAS"
+  - "AC-KKT"
   - "TPMOA"

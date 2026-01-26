@@ -18,7 +18,7 @@ class MFQAS:
         # 1. 按视野信息排序
         task_list.sort(key=cmp_to_key(self.comparator))
 
-        consumed_time_upper_bound = 2.2
+        consumed_time_upper_bound = 2.8
         edge_server_list = base_station.edge_servers
 
         # 3. 遍历任务列表，均摊卸载

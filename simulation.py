@@ -19,6 +19,96 @@ from strategy.MFQAS_strategy import MFQAS
 from strategy.ProCES360_strategy import ProCES360
 from strategy.TPMOA_strategy import TPMOA
 
+# 设置全局字体为黑体
+plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'DejaVu Sans']
+plt.rcParams['axes.unicode_minus'] = False
+
+
+def plot_comparison_bar_charts(results, strategy_names, simulation_count):
+    """绘制五种指标的柱状图对比"""
+
+    # 提取数据
+    metrics = ['transmit_time', 'compute_time', 'consumed_energy', 'video_quality', 'target']
+    metric_names = ['传输时间', '计算时间', '能耗', '视频质量', '综合目标值']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']  # 每个指标一种颜色
+
+    # 创建画布和子图
+    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+    axes = axes.flatten()
+
+    # 绘制前5个子图（每个指标一个）
+    for i, (metric, metric_name, color) in enumerate(zip(metrics, metric_names, colors)):
+        ax = axes[i]
+
+        # 获取该指标的所有策略值
+        values = [results[strategy][metric] for strategy in strategy_names]
+
+        # 创建柱状图
+        bars = ax.bar(strategy_names, values, color=color, alpha=0.8, edgecolor='black')
+
+        # 添加数值标签
+        for bar, value in zip(bars, values):
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width() / 2., height + 0.01 * max(values),
+                    f'{value:.2f}', ha='center', va='bottom', fontsize=9)
+
+        # 设置标题和标签
+        ax.set_title(f'{metric_name}对比', fontsize=12, fontweight='bold')
+        ax.set_ylabel(metric_name, fontsize=10)
+        ax.tick_params(axis='x', rotation=45, labelsize=9)
+
+        # 添加网格
+        ax.grid(True, alpha=0.3, linestyle='--')
+
+    # 第6个子图：综合对比（归一化）
+    ax = axes[5]
+
+    # 归一化数据（越小越好，所以对于video_quality需要特殊处理）
+    normalized_data = {}
+    for metric in metrics:
+        values = [results[strategy][metric] for strategy in strategy_names]
+        if metric == 'video_quality':  # 视频质量越大越好
+            max_val = max(values)
+            min_val = min(values)
+            if max_val != min_val:
+                normalized_values = [(v - min_val) / (max_val - min_val) for v in values]
+            else:
+                normalized_values = [1.0] * len(values)
+        else:  # 其他指标越小越好
+            max_val = max(values)
+            min_val = min(values)
+            if max_val != min_val:
+                normalized_values = [(max_val - v) / (max_val - min_val) for v in values]
+            else:
+                normalized_values = [1.0] * len(values)
+        normalized_data[metric] = normalized_values
+
+    # 绘制堆叠柱状图或并列柱状图
+    x = np.arange(len(strategy_names))
+    width = 0.15
+
+    for idx, (metric, metric_name, color) in enumerate(zip(metrics, metric_names, colors)):
+        values = normalized_data[metric]
+        ax.bar(x + (idx - 2) * width, values, width, label=metric_name, color=color, alpha=0.7)
+
+    ax.set_title('归一化综合对比（所有指标）', fontsize=12, fontweight='bold')
+    ax.set_ylabel('归一化值', fontsize=10)
+    ax.set_xticks(x)
+    ax.set_xticklabels(strategy_names, rotation=45, fontsize=9)
+    ax.legend(loc='upper left', bbox_to_anchor=(1.02, 1), fontsize=8)
+    ax.grid(True, alpha=0.3, linestyle='--')
+
+    # 调整布局
+    plt.suptitle(f'第 {simulation_count} 次模拟 - 算法性能对比', fontsize=14, fontweight='bold', y=0.98)
+    plt.tight_layout()
+
+    # 保存图片
+    save_path = f'simulation_comparison_{simulation_count}.png'
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.show()
+
+    print(f"对比图已保存到: {save_path}")
+
 
 def clear_environment_per_slot(base_station_list, edge_server_list):
     # 清空资源
@@ -237,7 +327,7 @@ while not conditions_met:
         consumed_energy = 0
         video_quality = 0
 
-        for cycle_index in range(20):  # 100
+        for cycle_index in range(40):  # 100
             # 清空资源
             clear_environment_per_simulation(base_station_list, edge_server_list, video_list)
 
@@ -301,107 +391,15 @@ while not conditions_met:
         print("video_quality: " + str(video_quality))
         print("target: " + str(target_value))
 
-        conditions_met = True
+        # 存储结果
+        results[strategy_name] = {
+            'transmit_time': transmit_time,
+            'compute_time': compute_time,
+            'consumed_energy': consumed_energy,
+            'video_quality': video_quality,
+            'target': target_value
+        }
 
-        if strategy_name == "ProCES-360":
-            # 保存到文件
-            np.save('reward_list.npy', base_station_list[0].strategy.reward_list)
-
-            # 创建包含多个子图的图形
-            fig, axes = plt.subplots(2, 3, figsize=(18, 10))
-
-            # 第一个基站
-            # Reward曲线
-            axes[0, 0].plot(base_station_list[0].strategy.reward_list, 'b-', linewidth=2)
-            axes[0, 0].set_xlabel('Episode', fontsize=12)
-            axes[0, 0].set_ylabel('Reward', fontsize=12)
-            axes[0, 0].set_title('Reward Trend - Base Station 0', fontsize=14)
-            axes[0, 0].grid(True, alpha=0.3)
-
-            # 第二个基站
-            if len(base_station_list) > 1:
-                axes[0, 1].plot(base_station_list[1].strategy.reward_list, 'g-', linewidth=2)
-                axes[0, 1].set_xlabel('Episode', fontsize=12)
-                axes[0, 1].set_ylabel('Reward', fontsize=12)
-                axes[0, 1].set_title('Reward Trend - Base Station 1', fontsize=14)
-                axes[0, 1].grid(True, alpha=0.3)
-
-            # 第三个基站
-            if len(base_station_list) > 2:
-                axes[0, 2].plot(base_station_list[2].strategy.reward_list, 'c-', linewidth=2)
-                axes[0, 2].set_xlabel('Episode', fontsize=12)
-                axes[0, 2].set_ylabel('Reward', fontsize=12)
-                axes[0, 2].set_title('Reward Trend - Base Station 2', fontsize=14)
-                axes[0, 2].grid(True, alpha=0.3)
-
-            plt.tight_layout()
-            plt.show()
-
-#     # 检查ProCES-360是否满足条件
-#     baseline_results = results.get("BASELINE")
-#     proces_results = results.get("ProCES-360")
-#
-#     if baseline_results and proces_results:
-#         # 条件1: ProCES-360的transmit_time比BASELINE小30%以上
-#         transmit_time_reduction = (baseline_results['transmit_time'] - proces_results['transmit_time']) / \
-#                                   baseline_results['transmit_time']
-#         condition1 = transmit_time_reduction > 0.30  # 大于30%的减少
-#
-#         # 条件2: ProCES-360的compute_time比BASELINE小30%以上
-#         compute_time_reduction = (baseline_results['compute_time'] - proces_results['compute_time']) / baseline_results[
-#             'compute_time']
-#         condition2 = compute_time_reduction > 0.30  # 大于30%的减少
-#
-#         # 条件3: ProCES-360的video_quality最多比BASELINE小10%以内
-#         video_quality_diff_ratio = (proces_results['video_quality'] - baseline_results['video_quality']) / \
-#                                    baseline_results['video_quality']
-#         condition3 = video_quality_diff_ratio >= -0.10  # 允许最多下降10%
-#
-#         # 检查所有条件
-#         conditions_met = condition1 and condition2 and condition3
-#
-#         print(f"\n======= 条件检查结果 (第 {simulation_count} 次模拟) =======")
-#         print(f"1. ProCES-360的transmit_time比BASELINE小30%以上: {condition1}")
-#         if baseline_results['transmit_time'] != 0:
-#             print(f"   BASELINE: {baseline_results['transmit_time']}, ProCES-360: {proces_results['transmit_time']}")
-#             print(f"   transmit_time减少比例: {transmit_time_reduction * 100:.2f}%")
-#
-#         print(f"2. ProCES-360的compute_time比BASELINE小30%以上: {condition2}")
-#         if baseline_results['compute_time'] != 0:
-#             print(f"   BASELINE: {baseline_results['compute_time']}, ProCES-360: {proces_results['compute_time']}")
-#             print(f"   compute_time减少比例: {compute_time_reduction * 100:.2f}%")
-#
-#         print(f"3. ProCES-360的video_quality最多比BASELINE小10%以内: {condition3}")
-#         if baseline_results['video_quality'] != 0:
-#             print(f"   BASELINE: {baseline_results['video_quality']}, ProCES-360: {proces_results['video_quality']}")
-#             print(f"   视频质量变化比例: {video_quality_diff_ratio * 100:.2f}%")
-#
-#         print(f"所有条件是否满足: {conditions_met}")
-#
-#         if not conditions_met:
-#             print("条件未满足，开始下一次模拟...")
-#     else:
-#         print("警告: 未能获取到BASELINE或ProCES-360的结果")
-#         conditions_met = False
-#
-# print(f"\n======= 模拟完成 =======")
-# print(f"总共进行了 {simulation_count} 次模拟")
-# print("ProCES-360策略满足所有条件:")
-#
-# if baseline_results['transmit_time'] != 0:
-#     transmit_time_reduction = (baseline_results['transmit_time'] - proces_results['transmit_time']) / baseline_results[
-#         'transmit_time']
-#     print(f"1. transmit_time: {proces_results['transmit_time']} (比BASELINE减少 {transmit_time_reduction * 100:.2f}%)")
-#
-# if baseline_results['compute_time'] != 0:
-#     compute_time_reduction = (baseline_results['compute_time'] - proces_results['compute_time']) / baseline_results[
-#         'compute_time']
-#     print(f"2. compute_time: {proces_results['compute_time']} (比BASELINE减少 {compute_time_reduction * 100:.2f}%)")
-#
-# if baseline_results['video_quality'] != 0:
-#     video_quality_diff_ratio = (proces_results['video_quality'] - baseline_results['video_quality']) / baseline_results[
-#         'video_quality']
-#     print(
-#         f"3. video_quality: {proces_results['video_quality']} (BASELINE: {baseline_results['video_quality']}, 变化: {video_quality_diff_ratio * 100:.2f}%)")
-#
-# print(f"4. target: {proces_results['target']} (BASELINE: {baseline_results['target']})")
+    # 绘制柱状图对比
+    plot_comparison_bar_charts(results, strategy_name_list, simulation_count)
+    conditions_met = True

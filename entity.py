@@ -114,7 +114,7 @@ class BaseStation:
 
         task.transmit_time += task.tile.data_size / self.base_station_channel_map[next_base_station].R
 
-    # # 获取通信基站内所有视频在当前时隙的视野内比特率之和
+    # # 获取通信基站内所有视频在当前时隙的视野内比特率之和，采用全部用户视野
     # def collect_video_quality(self, time_slot):
     #     video_quality = 0
     #     for video in self.video_list:
@@ -130,20 +130,19 @@ class BaseStation:
     #
     #     return video_quality
 
-    # # 获取通信基站内所有视频在当前时隙的视野内比特率之和
+    # # 获取通信基站内所有视频在当前时隙的视野内比特率之和，采用平均用户视野
     # def collect_video_quality(self, time_slot):
     #     video_quality = 0
     #     for video in self.video_list:
     #         user_bitrate = 0
     #         view_list_slot = video.view_list[time_slot]
     #         for tile_index in view_list_slot:
-    #             b=self.query_tile_bitrate(tile_index, video, time_slot)
     #             user_bitrate += self.query_tile_bitrate(tile_index, video, time_slot)
     #         video_quality += user_bitrate / len(view_list_slot)
     #
     #     return video_quality
 
-    # 获取通信基站内所有视频在当前时隙的视野内比特率之和，随机抽取一个用户
+    # 获取通信基站内所有视频在当前时隙的视野内比特率之和，采用随机抽取一个用户视野
     def collect_video_quality(self, time_slot):
         video_quality = 0
         for video in self.video_list:
@@ -291,7 +290,7 @@ class Task:
         if strategy_name != "AC-KKT":
             self.compute_time = self.c * (
                     1 + e_s.IO_conflict_factor) ** e_s.p / e_s.get_task_f() + self.g / e_s.get_task_u()
-        else: # 否则等于0，计算耗时由边缘服务器统计
+        else:  # 否则等于0，计算耗时由边缘服务器统计
             self.compute_time = 0
 
         self.consumed_energy = e_s.k * self.c * (e_s.get_task_f()) ** 2
