@@ -15,7 +15,7 @@ class EPRO(Strategy):
             return
 
         task_list = []
-        drop_rate = 0.1
+        drop_rate = 0.25
 
         # 第一步：概率丢弃
         for _ in range(length):
@@ -37,18 +37,18 @@ class EPRO(Strategy):
 
         allocated_tasks = set()  # 记录已分配的任务
 
-        task_scores = {}
-        for task in task_list:
-            scores = []
-            for edge_server in edge_server_list:
-                score = self.compute_score(task, edge_server, base_station)
-                scores.append((edge_server, score))
-
-            # 按分值从低到高排序（分值越低越好）
-            scores.sort(key=lambda x: x[1])
-            task_scores[task] = scores
-
         while len(allocated_tasks) < len(task_list):
+            task_scores = {}
+            for task in task_list:
+                scores = []
+                for edge_server in edge_server_list:
+                    score = self.compute_score(task, edge_server, base_station)
+                    scores.append((edge_server, score))
+
+                # 按分值从低到高排序（分值越低越好）
+                scores.sort(key=lambda x: x[1])
+                task_scores[task] = scores
+
             # 第三步：遍历边缘服务器，为每个边缘服务器分配任务
             for edge_server in edge_server_list:
                 # 找出所有未分配任务中，该边缘服务器是最佳选择的任务

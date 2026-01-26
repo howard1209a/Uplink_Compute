@@ -14,6 +14,7 @@ from entity import BaseStation, EdgeServer, Video, ResultPerSlot
 
 from strategy.BASELINE_strategy import BASELINE
 from strategy.EPRO_strategy import EPRO
+from strategy.MFQAS_strategy import MFQAS
 from strategy.ProCES360_strategy import ProCES360
 
 
@@ -104,6 +105,8 @@ def register_strategy(base_station_list, strategy_name):
             base_station.register_strategy(BASELINE())
         elif strategy_name == "EPRO":
             base_station.register_strategy(EPRO())
+        elif strategy_name == "MFQAS":
+            base_station.register_strategy(MFQAS())
         else:
             raise ValueError("yaml策略名无效")
 
@@ -263,7 +266,7 @@ while not conditions_met:
         print("video_quality: " + str(video_quality))
         print("target: " + str(target_value))
 
-        conditions_met=True
+        conditions_met = True
 
         if strategy_name == "ProCES-360":
             # 保存到文件
@@ -367,4 +370,3 @@ while not conditions_met:
 #         f"3. video_quality: {proces_results['video_quality']} (BASELINE: {baseline_results['video_quality']}, 变化: {video_quality_diff_ratio * 100:.2f}%)")
 #
 # print(f"4. target: {proces_results['target']} (BASELINE: {baseline_results['target']})")
-

@@ -97,6 +97,16 @@ class BaseStation:
 
         task.transmit_time += task.tile.data_size / self.edge_server_channel_map[edge_server].R
 
+    # 将某个已经卸载的任务从边缘服务器取回，执行与offload方法相反的操作，注意此方法必须与offload方法在同一次信息流交互执行
+    def withdraw_offload(self, task):
+        edge_server = task.offloaded_edge_server
+        task.offloaded_edge_server = None
+        edge_server.withdraw_task(task)
+
+        task.transmit_time -= task.tile.data_size / self.edge_server_channel_map[edge_server].R
+
+
+
     def transmit(self, task, next_base_station):
         if task.l <= 0:
             raise ValueError("传输次数耗尽的任务执行了传输")
@@ -174,6 +184,9 @@ class EdgeServer:
     def receive_task(self, task):
         self.p += 1
 
+    def withdraw_task(self, task):
+        self.p -= 1
+
     def get_task_f(self):
         if self.p == 0:
             return self.f
@@ -205,10 +218,11 @@ class Video:
     def __init__(self, name, data_size_list, view_list, user_view_list):
         self.name = name
         self.tile_list = []
-        for data_size_slot_list in data_size_list:
+        for time_slot in range(len(data_size_list)):
+            data_size_slot_list = data_size_list[time_slot]
             tile_slot_list = []
             for tile_index in range(len(data_size_slot_list)):
-                tile_slot_list.append(Tile(tile_index + 1, data_size_slot_list[tile_index], self))
+                tile_slot_list.append(Tile(tile_index + 1, data_size_slot_list[tile_index], self, time_slot))
             self.tile_list.append(tile_slot_list)
         self.view_list = view_list
         self.user_view_list = user_view_list
@@ -226,13 +240,15 @@ class Video:
 
 
 class Tile:
-    def __init__(self, index, data_size, video):
+    def __init__(self, index, data_size, video, time_slot):
         self.index = index
         # 单位bit
         self.data_size = data_size
         # 瓦片长度固定2s，比特率单位bps
         self.bitrate = self.data_size / 2.0
         self.video = video
+        # 瓦片所属时隙是固定的
+        self.time_slot = time_slot
 
     # 瓦片丢弃，放弃转码，比特率为0，会看到黑块
     def drop(self):
@@ -273,9 +289,9 @@ class Task:
             return
 
         e_s = self.offloaded_edge_server
-        a=self.c * (
+        a = self.c * (
                 1 + e_s.IO_conflict_factor) ** e_s.p / e_s.get_task_f()
-        b=self.g / e_s.get_task_u()
+        b = self.g / e_s.get_task_u()
         self.compute_time = self.c * (
                 1 + e_s.IO_conflict_factor) ** e_s.p / e_s.get_task_f() + self.g / e_s.get_task_u()
 

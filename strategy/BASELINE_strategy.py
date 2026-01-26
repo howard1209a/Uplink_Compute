@@ -16,12 +16,12 @@ class BASELINE(Strategy):
 
         first_task = base_station.task_queue.pop(0)
         choice = np.random.uniform(0, 1)
-        if choice < 0.5:
+        if choice < 0.3:
             if len(base_station.base_stations) > 0:
                 base_station.transmit(first_task, random.choice(base_station.base_stations))
             else:
                 self.best_offload(base_station, first_task)
-        elif choice < 0.6:
+        elif choice < 0.55:
             first_task.drop()
         else:
             self.best_offload(base_station, first_task)
