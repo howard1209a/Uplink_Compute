@@ -38,16 +38,6 @@ class ACKKT(Strategy):
                 best_edge_server = edge_server
         base_station.offload(first_task, best_edge_server)
 
-    # def best_offload(self, base_station, first_task):
-    #     best_edge_server = None
-    #     for edge_server in base_station.edge_servers:
-    #         if best_edge_server is None:
-    #             best_edge_server = edge_server
-    #             continue
-    #         if edge_server.p < best_edge_server.p:
-    #             best_edge_server = edge_server
-    #     base_station.offload(first_task, best_edge_server)
-
     def post_handle_per_slot(self, base_station, time_slot, result_per_slot):
         pass
 

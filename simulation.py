@@ -17,6 +17,7 @@ from strategy.BASELINE_strategy import BASELINE
 from strategy.EPRO_strategy import EPRO
 from strategy.MFQAS_strategy import MFQAS
 from strategy.ProCES360_strategy import ProCES360
+from strategy.TPMOA_strategy import TPMOA
 
 
 def clear_environment_per_slot(base_station_list, edge_server_list):
@@ -110,6 +111,8 @@ def register_strategy(base_station_list, strategy_name):
             base_station.register_strategy(MFQAS())
         elif strategy_name == "AC-KKT":
             base_station.register_strategy(ACKKT())
+        elif strategy_name == "TPMOA":
+            base_station.register_strategy(TPMOA(base_station))
         else:
             raise ValueError("yaml策略名无效")
 
