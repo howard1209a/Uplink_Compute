@@ -16,6 +16,9 @@ from strategy.ACKKT_strategy import ACKKT
 from strategy.BASELINE_strategy import BASELINE
 from strategy.EPRO_strategy import EPRO
 from strategy.MFQAS_strategy import MFQAS
+from strategy.ProCES360_no_all_strategy import ProCES360_No_All
+from strategy.ProCES360_no_drop_strategy import ProCES360_No_Drop
+from strategy.ProCES360_no_transmit_strategy import ProCES360_No_Transmit
 from strategy.ProCES360_strategy import ProCES360
 from strategy.TPMOA_strategy import TPMOA
 
@@ -203,6 +206,12 @@ def register_strategy(base_station_list, strategy_name):
             base_station.register_strategy(ACKKT())
         elif strategy_name == "TPMOA":
             base_station.register_strategy(TPMOA(base_station))
+        elif strategy_name == "ProCES-360-no-transmit":
+            base_station.register_strategy(ProCES360_No_Transmit(base_station))
+        elif strategy_name == "ProCES-360-no-drop":
+            base_station.register_strategy(ProCES360_No_Drop(base_station))
+        elif strategy_name == "ProCES-360-no-all":
+            base_station.register_strategy(ProCES360_No_All(base_station))
         else:
             raise ValueError("yaml策略名无效")
 
