@@ -241,8 +241,8 @@ def get_compute_time_from_edge_servers(edge_server_list, base_station_list):
     return compute_time
 
 
-base_station_count = 3
-node_count_ratio = 2
+base_station_count = 5
+node_count_ratio = 5
 edge_server_count = base_station_count * node_count_ratio
 
 base_station_list = []
@@ -253,7 +253,7 @@ for i in range(base_station_count):
 for i in range(edge_server_count):
     edge_server_list.append(EdgeServer(i))
 
-base_station_2_base_station_line_ratio = 0.5
+base_station_2_base_station_line_ratio = 0.3
 base_station_2_base_station_line_count = int(
     base_station_count * (base_station_count - 1) * base_station_2_base_station_line_ratio / 2)
 
@@ -267,7 +267,7 @@ while base_station_2_base_station_line_count > 0:
     from_node.connnet_base_station(to_node)
     base_station_2_base_station_line_count -= 1
 
-base_station_2_edge_server_line_ratio = 0.5
+base_station_2_edge_server_line_ratio = 0.8
 base_station_2_edge_server_line_count = int(
     base_station_count * edge_server_count * base_station_2_edge_server_line_ratio)
 
@@ -381,8 +381,12 @@ while not conditions_met:
                 if strategy_name == "AC-KKT":
                     compute_time += get_compute_time_from_edge_servers(edge_server_list, base_station_list)
 
+        # # 计算目标值
+        # target_value = transmit_time * GAMMA1 + compute_time * GAMMA2 + consumed_energy * 0 + video_quality * GAMMA4
+
         # 计算目标值
-        target_value = transmit_time * GAMMA1 + compute_time * GAMMA2 + consumed_energy * GAMMA3 + video_quality * GAMMA4
+        target_value = transmit_time * GAMMA1 + compute_time * GAMMA2 + consumed_energy * 0 + video_quality * GAMMA4 / len(
+            video_list)
 
         # 存储结果
         results[strategy_name] = {

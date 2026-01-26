@@ -1,0 +1,216 @@
+基站3比例2
+
+ ------ProCES-360------
+
+transmit_time: 1866.2398868461905
+compute_time: 1122.8515762792356
+consumed_energy: 570275.9902094691
+video_quality: 43373240024.0
+target: 207.90622000122198
+
+ ------BASELINE------
+
+transmit_time: 4045.934363521257
+compute_time: 2846.092397975666
+consumed_energy: 323532.8851422024
+video_quality: 43424454846.0
+target: 569.393711440098
+对比图已保存到: simulation_comparison_1.png
+
+基站3比例3
+ ------ProCES-360------
+
+transmit_time: 2953.354284878164
+compute_time: 1524.97370764697
+consumed_energy: 877945.6510003692
+video_quality: 7001807914.0
+target: 352
+
+ ------BASELINE------
+
+transmit_time: 7215.1765562820865
+compute_time: 4014.0381884478047
+consumed_energy: 527314.5158297739
+video_quality: 7001683919.0
+target: 985
+
+基站3比例5
+
+------ProCES-360------
+
+transmit_time: 4876.223855337336
+compute_time: 2198.546961822663
+consumed_energy: 1497228.4534395644
+video_quality: 100450206392.0
+target: 603.8678280909556
+
+ ------BASELINE------
+
+transmit_time: 13456.251040602805
+compute_time: 5905.771675588933
+consumed_energy: 800929.6748251035
+video_quality: 105900694222.0
+target: 1767.172280878025
+
+基站3比例10
+
+ ------ProCES-360------
+
+transmit_time: 12202.579927101346
+compute_time: 9304.050826679322
+consumed_energy: 3278335.014899652
+video_quality: 194069883948.0
+target: 1930.905600284078
+
+ ------BASELINE------
+
+transmit_time: 25543.290320882512
+compute_time: 14213.989603120497
+consumed_energy: 1553728.0657898483
+video_quality: 207655559042.0
+target: 3669.6096460009594
+
+基站5比例2
+
+ ------ProCES-360------
+
+transmit_time: 4254.891377267725
+compute_time: 1519.2815862838659
+consumed_energy: 1093768.8455013942
+video_quality: 72284444162.0
+target: 479.8114924217614
+
+ ------BASELINE------
+
+transmit_time: 9908.960059436606
+compute_time: 4235.923007096605
+consumed_energy: 659121.2920524229
+video_quality: 70482691460.0
+target: 1273.4068984083776
+
+基站5比例3
+
+ ------ProCES-360------
+
+transmit_time: 5692.996927354361
+compute_time: 2501.5800460286246
+consumed_energy: 1673309.0851272661
+video_quality: 107247899998.0
+target: 706.2660965724881
+
+ ------BASELINE------
+
+transmit_time: 13453.325875259083
+compute_time: 6683.030428901732
+consumed_energy: 760040.5846038661
+video_quality: 106686451580.0
+target: 1831.1274888810528
+
+基站5比例5
+
+ ------ProCES-360------
+
+transmit_time: 11543.005254458672
+compute_time: 5113.439696407539
+consumed_energy: 2941026.9519765875
+video_quality: 160216401580.0
+target: 1516.3339395144956
+
+ ------BASELINE------
+
+transmit_time: 24311.846393483716
+compute_time: 8893.186077569502
+consumed_energy: 1706584.3086602362
+video_quality: 171569046374.0
+target: 3103.65586059623
+
+基站5比例10
+
+ ------ProCES-360------
+
+transmit_time: 24039.359208453512
+compute_time: 12486.857643097454
+consumed_energy: 5632666.968881026
+video_quality: 316521390512.0
+target: 3381.2031130010723
+
+ ------BASELINE------
+
+transmit_time: 52908.18199563417
+compute_time: 18118.306182668723
+consumed_energy: 3055683.1786353393
+video_quality: 340380422550.0
+target: 6732.600963609144
+
+基站10比例2
+
+ ------ProCES-360------
+
+transmit_time: 8862.51412499616
+compute_time: 3125.5613112751344
+consumed_energy: 2686714.5443836995
+video_quality: 136713636424.0
+target: 1078.3580368938772
+
+ ------BASELINE------
+
+transmit_time: 18405.23607766077
+compute_time: 7780.877619922663
+consumed_energy: 1393361.50238494
+video_quality: 139496362948.0
+target: 2419.181894618966
+
+基站10比例3
+
+ ------ProCES-360------
+
+transmit_time: 14398.77468758634
+compute_time: 5035.110360759435
+consumed_energy: 3995388.0321401455
+video_quality: 200095800388.0
+target: 1792.771398692587
+
+ ------BASELINE------
+
+transmit_time: 30108.44790031359
+compute_time: 10644.649661464322
+consumed_energy: 2013095.309047251
+video_quality: 206793219214.0
+target: 3828.967855415386
+
+基站10比例5
+
+ ------ProCES-360------
+
+transmit_time: 21536.46400432855
+compute_time: 12502.356255289129
+consumed_energy: 6110847.611536451
+video_quality: 295078273494.0
+target: 3136.493767008149
+
+ ------BASELINE------
+
+transmit_time: 45231.945085100306
+compute_time: 17782.713048910966
+consumed_energy: 3320118.596243988
+video_quality: 344779461604.0
+target: 5936.131370265145
+
+基站10比例10
+
+ ------ProCES-360------
+
+transmit_time: 57861.12322865421
+compute_time: 297317.8529753368
+consumed_energy: 11607720.912609095
+video_quality: 654214545404.0
+target: 30497.178616269754
+
+ ------BASELINE------
+
+transmit_time: 96989.05347858026
+compute_time: 35675.82801115384
+consumed_energy: 6925902.617221166
+video_quality: 691389226962.0
+target: 12602.752092757979
+
