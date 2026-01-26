@@ -13,4 +13,5 @@ strategies:
 #  - "ProCES-360"
   - "BASELINE"
 #  - "EPRO"
-  - "MFQAS"
+#  - "MFQAS"
+  - "AC-KKT"

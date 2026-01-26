@@ -11,6 +11,7 @@ from matplotlib import pyplot as plt
 
 from constant import TIME_SLOTS_LENGTH, GAMMA1, GAMMA2, GAMMA3, GAMMA4
 from entity import BaseStation, EdgeServer, Video, ResultPerSlot
+from strategy.ACKKT_strategy import ACKKT
 
 from strategy.BASELINE_strategy import BASELINE
 from strategy.EPRO_strategy import EPRO
@@ -107,8 +108,35 @@ def register_strategy(base_station_list, strategy_name):
             base_station.register_strategy(EPRO())
         elif strategy_name == "MFQAS":
             base_station.register_strategy(MFQAS())
+        elif strategy_name == "AC-KKT":
+            base_station.register_strategy(ACKKT())
         else:
             raise ValueError("yaml策略名无效")
+
+
+def get_compute_time_from_edge_servers(edge_server_list, base_station_list):
+    edge_server_task_map = {}
+    for edge_server in edge_server_list:
+        edge_server_task_map[edge_server] = []
+    for base_station in base_station_list:
+        for task in base_station.origin_task_list:
+            if task.offloaded_edge_server is not None:
+                edge_server_task_map[task.offloaded_edge_server].append(task)
+
+    compute_time = 0
+
+    for edge_server, task_list in edge_server_task_map.items():
+        if len(task_list) == 0:
+            continue
+        cpu_cycles = []
+        gpu_cycles = []
+        for task in task_list:
+            cpu_cycles.append(task.c)
+            gpu_cycles.append(task.g)
+        compute_time += ACKKT.optimal_resource_allocation_with_contention(cpu_cycles, gpu_cycles, edge_server.f,
+                                                                          edge_server.u, edge_server.IO_conflict_factor)
+
+    return compute_time
 
 
 base_station_count = 3
@@ -233,7 +261,7 @@ while not conditions_met:
                 for base_station in base_station_list:
                     base_station_result = ResultPerSlot(0, 0, 0, 0)
                     for task in base_station.origin_task_list:
-                        task.collect_statistics()
+                        task.collect_statistics(strategy_name)
                         base_station_result.transmit_time += task.transmit_time
                         base_station_result.compute_time += task.compute_time
                         base_station_result.consumed_energy += task.consumed_energy
@@ -246,6 +274,10 @@ while not conditions_met:
                     compute_time += base_station_result.compute_time
                     consumed_energy += base_station_result.consumed_energy
                     video_quality += base_station_result.video_quality
+
+                # 特殊算法，从边缘服务器维度统计本时隙的计算耗时
+                if strategy_name == "AC-KKT":
+                    compute_time += get_compute_time_from_edge_servers(edge_server_list, base_station_list)
 
         # 计算目标值
         target_value = transmit_time * GAMMA1 + compute_time * GAMMA2 + consumed_energy * GAMMA3 + video_quality * GAMMA4

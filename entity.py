@@ -105,8 +105,6 @@ class BaseStation:
 
         task.transmit_time -= task.tile.data_size / self.edge_server_channel_map[edge_server].R
 
-
-
     def transmit(self, task, next_base_station):
         if task.l <= 0:
             raise ValueError("传输次数耗尽的任务执行了传输")
@@ -282,18 +280,19 @@ class Task:
     def offloaded_to_edge_server(self, edge_server):
         self.offloaded_edge_server = edge_server
 
-    def collect_statistics(self):
+    def collect_statistics(self, strategy_name):
         if self.dropped:
             self.compute_time = 0
             self.consumed_energy = 0
             return
 
         e_s = self.offloaded_edge_server
-        a = self.c * (
-                1 + e_s.IO_conflict_factor) ** e_s.p / e_s.get_task_f()
-        b = self.g / e_s.get_task_u()
-        self.compute_time = self.c * (
-                1 + e_s.IO_conflict_factor) ** e_s.p / e_s.get_task_f() + self.g / e_s.get_task_u()
+        # 非AC-KKT算法，计算耗时可以直接按照平均分配计算资源来统计
+        if strategy_name != "AC-KKT":
+            self.compute_time = self.c * (
+                    1 + e_s.IO_conflict_factor) ** e_s.p / e_s.get_task_f() + self.g / e_s.get_task_u()
+        else: # 否则等于0，计算耗时由边缘服务器统计
+            self.compute_time = 0
 
         self.consumed_energy = e_s.k * self.c * (e_s.get_task_f()) ** 2
 
