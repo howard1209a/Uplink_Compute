@@ -253,7 +253,7 @@ for i in range(base_station_count):
 for i in range(edge_server_count):
     edge_server_list.append(EdgeServer(i))
 
-base_station_2_base_station_line_ratio = 0.3
+base_station_2_base_station_line_ratio = 1
 base_station_2_base_station_line_count = int(
     base_station_count * (base_station_count - 1) * base_station_2_base_station_line_ratio / 2)
 
@@ -267,7 +267,7 @@ while base_station_2_base_station_line_count > 0:
     from_node.connnet_base_station(to_node)
     base_station_2_base_station_line_count -= 1
 
-base_station_2_edge_server_line_ratio = 0.8
+base_station_2_edge_server_line_ratio = 1
 base_station_2_edge_server_line_count = int(
     base_station_count * edge_server_count * base_station_2_edge_server_line_ratio)
 

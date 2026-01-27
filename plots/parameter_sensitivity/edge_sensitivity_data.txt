@@ -179,14 +179,109 @@ video_quality: 175580596768.0
 target: 3100.4559222505973
 
 边缘服务器与通信基站之间的边比率0.8，通信基站之间的边比率0.6
+
+ ------ProCES-360------
+
+transmit_time: 10075.139139666562
+compute_time: 5156.367050206854
+consumed_energy: 2636144.7986065126
+video_quality: 159822787902.0
+target: 1373.2820529897608
+
+ ------BASELINE------
+
+transmit_time: 20666.44633056164
+compute_time: 9627.207957318265
+consumed_energy: 1401484.7044915226
+video_quality: 178251366654.0
+target: 2797.611416171086
+
 边缘服务器与通信基站之间的边比率0.8，通信基站之间的边比率1
+
+ ------ProCES-360------
+
+transmit_time: 12446.02130720238
+compute_time: 4998.615625625004
+consumed_energy: 2989232.249893116
+video_quality: 166635909204.0
+target: 1594.4990691740552
+
+ ------BASELINE------
+
+transmit_time: 26833.37915252351
+compute_time: 9394.495353169114
+consumed_energy: 1542423.7438962867
+video_quality: 175609754556.0
+target: 3395.9686261940437
 
 边缘服务器与通信基站之间的边比率1，通信基站之间的边比率0
 
+ ------ProCES-360------
 
+transmit_time: 10986.525261988152
+compute_time: 4804.952135734787
+consumed_energy: 3000753.9769316
+video_quality: 163449181490.0
+target: 1433.6855315807138
 
+ ------BASELINE------
 
+transmit_time: 18795.472812913387
+compute_time: 10394.157554852209
+consumed_energy: 1462934.8680048056
+video_quality: 186127315486.0
+target: 2671.2761513346227
 
 边缘服务器与通信基站之间的边比率1，通信基站之间的边比率0.3
+
+ ------ProCES-360------
+
+transmit_time: 10447.882370794501
+compute_time: 4526.944091028224
+consumed_energy: 3413905.034149239
+video_quality: 148926609926.0
+target: 1362.462934028069
+
+ ------BASELINE------
+
+transmit_time: 23799.551584762918
+compute_time: 9091.063230770744
+consumed_energy: 1701777.5355955688
+video_quality: 175502737742.0
+target: 3067.34266594372
+
 边缘服务器与通信基站之间的边比率1，通信基站之间的边比率0.6
+
+ ------ProCES-360------
+
+transmit_time: 11013.47391799066
+compute_time: 5474.233852508241
+consumed_energy: 2722057.784984042
+video_quality: 144990488522.0
+target: 1499.5373507659526
+
+ ------BASELINE------
+
+transmit_time: 21751.245169267895
+compute_time: 8755.596821359824
+consumed_energy: 1472381.8414870827
+video_quality: 172538019210.0
+target: 2835.7423776894416
+
 边缘服务器与通信基站之间的边比率1，通信基站之间的边比率1
+
+ ------ProCES-360------
+
+transmit_time: 10510.602106506552
+compute_time: 4105.2049886158675
+consumed_energy: 2874568.5565357055
+video_quality: 159562010224.0
+target: 1329.3358222790441
+
+ ------BASELINE------
+
+transmit_time: 22638.4348467884
+compute_time: 8709.205456947611
+consumed_energy: 1474606.474533319
+video_quality: 172024994438.0
+target: 2920.8006083159407
