@@ -253,7 +253,7 @@ for i in range(base_station_count):
 for i in range(edge_server_count):
     edge_server_list.append(EdgeServer(i))
 
-base_station_2_base_station_line_ratio = 1
+base_station_2_base_station_line_ratio = 0.5
 base_station_2_base_station_line_count = int(
     base_station_count * (base_station_count - 1) * base_station_2_base_station_line_ratio / 2)
 
@@ -267,7 +267,7 @@ while base_station_2_base_station_line_count > 0:
     from_node.connnet_base_station(to_node)
     base_station_2_base_station_line_count -= 1
 
-base_station_2_edge_server_line_ratio = 1
+base_station_2_edge_server_line_ratio = 0.5
 base_station_2_edge_server_line_count = int(
     base_station_count * edge_server_count * base_station_2_edge_server_line_ratio)
 
@@ -315,104 +315,109 @@ print("---------------------------start simulation---------------------------")
 
 strategy_name_list = config.get("strategies", [])
 
-simulation_count = 0
-conditions_met = False
+results = {}  # 存储每个策略的结果
 
-while not conditions_met:
-    simulation_count += 1
-    print(f"\n======= 第 {simulation_count} 次模拟 =======")
+# 每个策略模拟一次
+for strategy_name in strategy_name_list:
+    transmit_time_list = []
+    compute_time_list = []
+    live_delay_list = []
+    consumed_energy_list = []
 
-    results = {}  # 存储每个策略的结果
+    # 清空资源
+    clear_environment_per_simulation(base_station_list, edge_server_list, video_list)
 
-    # 每个策略模拟一次
-    for strategy_name in strategy_name_list:
+    register_strategy(base_station_list, strategy_name)
+
+    transmit_time = 0
+    compute_time = 0
+    consumed_energy = 0
+    video_quality = 0
+
+    for cycle_index in range(40):  # 100
         # 清空资源
         clear_environment_per_simulation(base_station_list, edge_server_list, video_list)
 
-        register_strategy(base_station_list, strategy_name)
-
-        transmit_time = 0
-        compute_time = 0
-        consumed_energy = 0
-        video_quality = 0
-
-        for cycle_index in range(40):  # 100
+        # 依次模拟每个时隙，一个时隙2s
+        for time_slot in range(TIME_SLOTS_LENGTH):
             # 清空资源
-            clear_environment_per_simulation(base_station_list, edge_server_list, video_list)
+            clear_environment_per_slot(base_station_list, edge_server_list)
 
-            # 依次模拟每个时隙，一个时隙2s
-            for time_slot in range(TIME_SLOTS_LENGTH):
-                # 清空资源
-                clear_environment_per_slot(base_station_list, edge_server_list)
+            # 对于每个通信基站，初始化本时隙的任务队列
+            for base_station in base_station_list:
+                base_station.init_task_queue(time_slot)
 
-                # 对于每个通信基站，初始化本时隙的任务队列
+            while True:
                 for base_station in base_station_list:
-                    base_station.init_task_queue(time_slot)
+                    base_station.interact(time_slot)
 
-                while True:
-                    for base_station in base_station_list:
-                        base_station.interact(time_slot)
-
-                    all_clean = True
-                    for base_station in base_station_list:
-                        all_clean = all_clean and base_station.task_clean()
-
-                    if all_clean:
-                        break
-
+                all_clean = True
                 for base_station in base_station_list:
-                    base_station_result = ResultPerSlot(0, 0, 0, 0)
-                    for task in base_station.origin_task_list:
-                        task.collect_statistics(strategy_name)
-                        base_station_result.transmit_time += task.transmit_time
-                        base_station_result.compute_time += task.compute_time
-                        base_station_result.consumed_energy += task.consumed_energy
-                    base_station_result.video_quality = base_station.collect_video_quality(time_slot)
+                    all_clean = all_clean and base_station.task_clean()
 
-                    # 每时隙的后处理
-                    base_station.post_handle_per_slot(base_station, time_slot, base_station_result)
+                if all_clean:
+                    break
 
-                    transmit_time += base_station_result.transmit_time
-                    compute_time += base_station_result.compute_time
-                    consumed_energy += base_station_result.consumed_energy
-                    video_quality += base_station_result.video_quality
+            for base_station in base_station_list:
+                base_station_result = ResultPerSlot(0, 0, 0, 0)
+                for task in base_station.origin_task_list:
+                    task.collect_statistics(strategy_name)
 
-                # 特殊算法，从边缘服务器维度统计本时隙的计算耗时
-                if strategy_name == "AC-KKT":
-                    compute_time += get_compute_time_from_edge_servers(edge_server_list, base_station_list)
+                    transmit_time_list.append(task.transmit_time)
+                    compute_time_list.append(task.compute_time)
+                    live_delay_list.append(task.transmit_time + task.compute_time)
+                    consumed_energy_list.append(task.consumed_energy)
 
-        # # 计算目标值
-        # target_value = transmit_time * GAMMA1 + compute_time * GAMMA2 + consumed_energy * 0 + video_quality * GAMMA4
+                    base_station_result.transmit_time += task.transmit_time
+                    base_station_result.compute_time += task.compute_time
+                    base_station_result.consumed_energy += task.consumed_energy
+                base_station_result.video_quality = base_station.collect_video_quality(time_slot)
 
-        # 计算目标值
-        target_value = transmit_time * GAMMA1 + compute_time * GAMMA2 + consumed_energy * 0 + video_quality * GAMMA4 / len(
-            video_list)
+                # 每时隙的后处理
+                base_station.post_handle_per_slot(base_station, time_slot, base_station_result)
 
-        # 存储结果
-        results[strategy_name] = {
-            'transmit_time': transmit_time,
-            'compute_time': compute_time,
-            'consumed_energy': consumed_energy,
-            'video_quality': video_quality,
-            'target': target_value
-        }
+                transmit_time += base_station_result.transmit_time
+                compute_time += base_station_result.compute_time
+                consumed_energy += base_station_result.consumed_energy
+                video_quality += base_station_result.video_quality
 
-        print("\n ------" + str(strategy_name) + "------\n")
-        print("transmit_time: " + str(transmit_time))
-        print("compute_time: " + str(compute_time))
-        print("consumed_energy: " + str(consumed_energy))
-        print("video_quality: " + str(video_quality))
-        print("target: " + str(target_value))
+            # 特殊算法，从边缘服务器维度统计本时隙的计算耗时
+            if strategy_name == "AC-KKT":
+                compute_time += get_compute_time_from_edge_servers(edge_server_list, base_station_list)
 
-        # 存储结果
-        results[strategy_name] = {
-            'transmit_time': transmit_time,
-            'compute_time': compute_time,
-            'consumed_energy': consumed_energy,
-            'video_quality': video_quality,
-            'target': target_value
-        }
+    # # 计算目标值
+    # target_value = transmit_time * GAMMA1 + compute_time * GAMMA2 + consumed_energy * 0 + video_quality * GAMMA4
 
-    # 绘制柱状图对比
-    plot_comparison_bar_charts(results, strategy_name_list, simulation_count)
-    conditions_met = True
+    # 计算目标值
+    target_value = transmit_time * GAMMA1 + compute_time * GAMMA2 + consumed_energy * 0 + video_quality * GAMMA4 / len(
+        video_list)
+
+    # 存储结果
+    results[strategy_name] = {
+        'transmit_time': transmit_time,
+        'compute_time': compute_time,
+        'consumed_energy': consumed_energy,
+        'video_quality': video_quality,
+        'target': target_value,
+        'transmit_time_list': transmit_time_list,
+        'compute_time_list': compute_time_list,
+        'live_delay_list': live_delay_list,
+        'consumed_energy_list': consumed_energy_list,
+    }
+
+    print("\n ------" + str(strategy_name) + "------\n")
+    print("transmit_time: " + str(transmit_time))
+    print("compute_time: " + str(compute_time))
+    print("consumed_energy: " + str(consumed_energy))
+    print("video_quality: " + str(video_quality))
+    print("target: " + str(target_value))
+
+    # 保存五个list为npy文件
+    strategy_prefix = strategy_name.lower().replace('-', '_')
+    np.save(f'{strategy_prefix}_transmit_time_list.npy', np.array(transmit_time_list))
+    np.save(f'{strategy_prefix}_compute_time_list.npy', np.array(compute_time_list))
+    np.save(f'{strategy_prefix}_live_delay_list.npy', np.array(live_delay_list))
+    np.save(f'{strategy_prefix}_consumed_energy_list.npy', np.array(consumed_energy_list))
+
+# 绘制柱状图对比
+plot_comparison_bar_charts(results, strategy_name_list, 1)
