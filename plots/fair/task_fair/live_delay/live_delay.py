@@ -134,7 +134,7 @@ if __name__ == "__main__":
         labels=custom_labels,
         title='',
         show_grid=True,
-        save_path='task_fair.png',
+        save_path='live_delay_fair.png',
         figure_size=(12, 8),
         line_width=2.5,
         alpha=0.85,
