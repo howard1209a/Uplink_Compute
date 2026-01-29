@@ -43,7 +43,14 @@ def plot_bandwidth_cdf(data_list, colors=None, markers=None, labels=None,
 
     # 设置默认值
     if colors is None:
-        colors = plt.cm.tab10(np.linspace(0, 1, n_lines))
+        colors = [
+            '#4E79A7',  # 深蓝色
+            '#F28E2B',  # 橙色
+            '#E15759',  # 红色
+            '#76B7B2',  # 蓝绿色
+            '#59A14F',  # 绿色
+            '#EDC948'  # 黄色
+        ]
 
     if markers is None:
         markers = ['o', 'v', 's', '^', 'D', 'p', '*', 'X']
@@ -113,12 +120,19 @@ if __name__ == "__main__":
     ACKKT_live_delay_list = np.load('AC-KKT_consumed_energy_list.npy').tolist()
     TPMOA_live_delay_list = np.load('TPMOA_consumed_energy_list.npy').tolist()
 
-
     # 组合所有数据
-    all_data = [ProCES360_live_delay_list, BASELINE_live_delay_list, EPRO_live_delay_list,MFQAS_live_delay_list, ACKKT_live_delay_list, TPMOA_live_delay_list]
+    all_data = [ProCES360_live_delay_list, BASELINE_live_delay_list, EPRO_live_delay_list, MFQAS_live_delay_list,
+                ACKKT_live_delay_list, TPMOA_live_delay_list]
 
     # 自定义颜色（使用tab20色彩映射生成6个颜色）
-    custom_colors = plt.cm.tab20(np.linspace(0, 1, 6))
+    custom_colors = [
+        '#4E79A7',  # 深蓝色
+        '#F28E2B',  # 橙色
+        '#E15759',  # 红色
+        '#76B7B2',  # 蓝绿色
+        '#59A14F',  # 绿色
+        '#EDC948'  # 黄色
+    ]
 
     # 自定义标记
     custom_markers = ['o', 'v', 's', '^', 'D', 'p']
