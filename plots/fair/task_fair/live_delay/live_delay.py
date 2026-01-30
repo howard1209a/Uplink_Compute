@@ -124,15 +124,7 @@ if __name__ == "__main__":
     all_data = [ProCES360_live_delay_list, BASELINE_live_delay_list, EPRO_live_delay_list, MFQAS_live_delay_list,
                 ACKKT_live_delay_list, TPMOA_live_delay_list]
 
-    # 自定义颜色（使用tab20色彩映射生成6个颜色）
-    custom_colors = [
-        '#4E79A7',  # 深蓝色
-        '#F28E2B',  # 橙色
-        '#E15759',  # 红色
-        '#76B7B2',  # 蓝绿色
-        '#59A14F',  # 绿色
-        '#EDC948'  # 黄色
-    ]
+    custom_colors = np.vstack([plt.cm.tab10(np.linspace(0, 1, 3)), plt.cm.tab10([6, 7, 8])])
 
     # 自定义标记
     custom_markers = ['o', 'v', 's', '^', 'D', 'p']
